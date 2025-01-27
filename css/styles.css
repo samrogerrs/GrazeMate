@@ -3754,14 +3754,15 @@ img.u-pull-left {
 /* --------------------------------------------------------------------
  * ## how-to
  * -------------------------------------------------------------------- */
-.s-about__howto {
-    --process-padding-left : 7.2rem;
-    --screen-block-width   : calc(400px + var(--vspace-1));
-    margin-top             : calc(6 * var(--space));
-    background-color: rgb(245, 245, 245);
+ .s-about__howto {
+    --process-padding-left: 7.2rem;
+    --screen-block-width: calc(400px + var(--vspace-1));
+    margin-top: calc(6 * var(--space));
     padding-top: 200px;
     padding-bottom: var(--vspace-4);
+    background-color: #f1f2f1;
 }
+
 
 .s-about__howto .s-about__howto-content {
     margin-top : var(--vspace-2);
