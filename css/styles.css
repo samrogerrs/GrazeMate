@@ -4001,6 +4001,12 @@ img.u-pull-left {
   }
   
 
+    .ipad {
+    height: 100%;
+    width: auto;
+    padding: 0;
+  }
+
   .content-grid {
     display: flex;
     flex-wrap: wrap; /* Allows content to wrap */
@@ -4017,7 +4023,33 @@ img.u-pull-left {
     border-radius: 5px;
     object-fit: cover; /* Ensures images are properly cropped if needed */
   }
-  
+
+  /* Apply styles specifically for phone view */
+@media (max-width: 768px) {
+    .ipad {
+        position: relative; /* Keeps the element in the document flow */
+        transform: scale(1.5); /* Scales the image */
+        transform-origin: left; /* Focus the scaling effect on the left side */
+        margin: 40px auto; /* Add spacing around the scaled image */
+        width: auto; /* Maintain the image's aspect ratio */
+        height: auto; /* Scale height proportionally */
+        max-height: 500px; /* Optional: Limit the height of the image */
+        object-fit: cover; /* Ensures the image fills its container */
+        object-position: left; /* Align the image to the left */
+        border-radius: 16px; /* Adds rounded corners */
+    }
+
+    /* Ensure parent container accounts for the scaled image */
+    .content-grid {
+        display: flex; /* Flex layout for surrounding elements */
+        flex-direction: column; /* Stacks elements vertically */
+        align-items: center; /* Center elements horizontally */
+        gap: 20px; /* Add spacing between elements */
+        padding: 20px; /* Add padding around the container */
+    }
+}
+
+
   /* For mobile devices */
   @media screen and (max-width: 768px) {
     .content-grid img {
@@ -4025,6 +4057,9 @@ img.u-pull-left {
       max-height: 600px; /* Remove height limit for mobile */
     }
   }
+
+
+
   ul {
     list-style: none;
     padding: 0;
