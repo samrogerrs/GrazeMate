@@ -3733,14 +3733,17 @@ img.u-pull-left {
 /* --------------------------------------------------------------------
  * ## screens
  * -------------------------------------------------------------------- */
+
 .s-about__screens-block {
-    margin-top : var(--vspace-2);
+    margin-top: var(--vspace-2);
+    overflow: hidden;  /* Hide any overflow outside the container */
 }
 
 .s-about__screens {
-    position : relative;
+    position: relative;
     margin-right: auto;
-    background-color: wheat;
+    width: 100%;  /* Ensure the container takes the full width */
+    overflow: hidden;  /* Hide any overflow outside the container */
 }
 
 .s-about__screens img {
@@ -3749,7 +3752,31 @@ img.u-pull-left {
     margin-bottom: 0;
 }
 
+/* Apply styles specifically for phone view */
+@media (max-width: 768px) {
+    .s-about__screens {
+        position: relative;
+        margin-right: auto;
+        height: 600px;  /* Ensure the container takes the full width */
+        overflow: hidden;  /* Hide any overflow outside the container */
+        border-radius: 16px;
+    }
 
+    .s-about__screens img {
+        height: 100%;  /* Make the image fill the container's height */
+        width: auto;  /* Allow the image to scale proportionally */
+        object-fit: cover;  /* Ensures the image fills the container */
+        object-position: center;  /* Keeps the image centered on the right side */
+        
+        /* Zoom in by scaling the image */
+        transform: scale(1.1);  /* Zoom in to 1.5x */
+        transform-origin: center;  /* Focus the zoom on the right side */
+        
+        box-shadow: 0 40px 24px -40px rgba(0, 0, 0, 0.3);
+        border-radius: 16px;
+        margin-bottom: 0;
+    }
+}
 
 
 /* --------------------------------------------------------------------
@@ -4440,8 +4467,8 @@ img.u-pull-left {
  *
  * ------------------------------------------------------------------- */
 .s-download {
-    padding-top      : calc(6 * var(--space));
-    padding-bottom   : var(--vspace-4);
+    padding-top      : var(--vspace-5);
+    padding-bottom   : var(--vspace-5);
     background-color : var(--color-1);
 }
 
