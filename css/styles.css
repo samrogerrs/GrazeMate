@@ -3718,7 +3718,7 @@ img.u-pull-left {
  * -------------------------------------------------------------------- */
 .s-about__info {
     margin-top : var(--vspace-2);
-    margin-bottom : var(--vspace-2);
+    
 }
 
 .s-about__info-slider {
@@ -3739,13 +3739,14 @@ img.u-pull-left {
 
 .s-about__screens {
     position : relative;
-    height   : var(--screen-height);
     margin-right: auto;
+    background-color: wheat;
 }
 
 .s-about__screens img {
     box-shadow    : 0 40px 24px -40px rgba(0, 0, 0, 0.3);
     border-radius : 16px;
+    margin-bottom: 0;
 }
 
 
