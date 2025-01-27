@@ -3944,7 +3944,7 @@ img.u-pull-left {
     white-space: normal; /* Enable word wrapping for titles */
     word-wrap: break-word; /* Break long words if necessary */
     line-height: 1.2; /* Adjust line height for better readability */
-    min-width: 80px; /* Ensure buttons have a reasonable minimum width */
+    min-width: 40px; /* Ensure buttons have a reasonable minimum width */
     max-width: 350px; /* Optional: Prevent buttons from being too wide */
 }
 
