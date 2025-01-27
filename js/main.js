@@ -170,7 +170,7 @@
     const greenLine = document.createElement('div');
     greenLine.style.position = 'absolute';
     greenLine.style.bottom = '0';
-    greenLine.style.height = '2px';
+    greenLine.style.height = '3px';
     greenLine.style.backgroundColor = 'green'; // Set color for active tab underline
     greenLine.style.transition = 'left 1s ease, width 1s ease';
     tabButtonsContainer.appendChild(greenLine);

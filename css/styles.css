@@ -3186,6 +3186,7 @@ img.u-pull-left {
         position  : absolute;
         left      : 0;
         top       : 50%;
+        transform: scale(20);
         transform : translate(4.2rem, -50%);
     }
 
@@ -3936,8 +3937,13 @@ img.u-pull-left {
     transition: color 0.3s, transform 0.3s;
     position: relative;
     z-index: 1;
-    flex: 1 1 auto; /* Allow buttons to shrink/grow evenly */
-    text-align: center; /* Center-align text in buttons */
+    flex: 1 1 auto; /* Allow buttons to grow/shrink evenly */
+    text-align: center; /* Center-align text inside buttons */
+    white-space: normal; /* Enable word wrapping for titles */
+    word-wrap: break-word; /* Break long words if necessary */
+    line-height: 1.2; /* Adjust line height for better readability */
+    min-width: 80px; /* Ensure buttons have a reasonable minimum width */
+    max-width: 350px; /* Optional: Prevent buttons from being too wide */
 }
 
 .tab-buttons::before {
@@ -3965,15 +3971,15 @@ img.u-pull-left {
 
 @media (max-width: 768px) {
     .tab-buttons {
-        flex-wrap: nowrap; /* Keep buttons in one line */
-        justify-content: flex-start; /* Align buttons to the left */
-        overflow-x: scroll; /* Enable horizontal scrolling for overflow */
-        -webkit-overflow-scrolling: touch; /* Smooth scrolling for mobile devices */
+        flex-wrap: wrap; /* Allow buttons to wrap onto the next line */
+        justify-content: center; /* Center-align wrapped buttons */
+        gap: 8px; /* Add spacing between wrapped buttons */
     }
 
     .tab-button {
-        flex: 0 0 auto; /* Prevent shrinking of buttons */
-        padding: 10px; /* Adjust padding for smaller screens */
+        flex: 0 1 auto; /* Prevent buttons from stretching too much */
+        padding: 8px; /* Adjust padding for smaller screens */
+        font-size: 14px; /* Slightly reduce font size for smaller screens */
     }
 }
 
