@@ -3668,7 +3668,7 @@ img.u-pull-left {
     --screen-width   : 340px;
     --screen-height  : 736px;
     padding-top      : var(--vspace-5);
-    padding-bottom   : var(--vspace-5);
+    padding-bottom   : var(--vspace-2);
     background-color : var(--color-gray-6);
 }
 
@@ -3867,11 +3867,10 @@ img.u-pull-left {
     display          : flex;
     align-items      : center;
     justify-content  : center;
-    height           : var(--vspace-2);
     width            : var(--vspace-2);
     border-radius    : 50%;
     background-color : rgba(0, 0, 0, 0.05);
-    margin-bottom    : var(--vspace-0_375);
+    margin-bottom    : 0;
 }
 
 .s-about__feature-icon-block svg {
