@@ -591,18 +591,10 @@
                 </div>
                 <div class="column lg-12 s-footer__subscribe">
                     <div class="subscribe-form">
-                        <form id="contact-form" class="contact-form" action="php/sendmail.php" method="POST">
+                        <form name="contact" method="POST" data-netlify="true" class="contact-form">
                             <!-- Email Input -->
-                            <input 
-                                type="email" 
-                                name="EMAIL" 
-                                id="mce-EMAIL" 
-                                class="u-fullwidth text-center" 
-                                placeholder="Your Email Address" 
-                                title="The domain portion of the email address is invalid (the portion after the @)." 
-                                pattern="^([^\x00-\x20\x22\x28\x29\x2c\x2e\x3a-\x3c\x3e\x40\x5b-\x5d\x7f-\xff]+|\x22([^\x0d\x22\x5c\x80-\xff]|\x5c[\x00-\x7f])*\x22)(\x2e([^\x00-\x20\x22\x28\x29\x2c\x2e\x3a-\x3c\x3e\x40\x5b-\x5d\x7f-\xff]+|\x22([^\x0d\x22\x5c\x80-\xff]|\x5c[\x00-\x7f])*\x22))*\x40([^\x00-\x20\x22\x28\x29\x2c\x2e\x3a-\x3c\x3e\x40\x5b-\x5d\x7f-\xff]+|\x5b([^\x0d\x5b-\x5d\x80-\xff]|\x5c[\x00-\x7f])*\x5d)(\x2e([^\x00-\x20\x22\x28\x29\x2c\x2e\x3a-\x3c\x3e\x40\x5b-\x5d\x7f-\xff]+|\x5b([^\x0d\x5b-\x5d\x80-\xff]|\x5c[\x00-\x7f])*\x5d))*(\.\w{2,})+$" 
-                                required>
-                        
+                            <input type="email" name="EMAIL" id="mce-EMAIL" class="u-fullwidth text-center" placeholder="Your Email Address" required>
+                            
                             <!-- Dropdown Menu -->
                             <select name="REQUEST_TYPE" id="request-type" class="u-fullwidth" required>
                                 <option value="" disabled selected>Select an option</option>
@@ -613,23 +605,12 @@
                             </select>
                         
                             <!-- Optional Message Field -->
-                            <textarea 
-                                name="MESSAGE" 
-                                id="message" 
-                                class="u-fullwidth" 
-                                placeholder="Optional Message (e.g., details about your request)" 
-                                rows="4"></textarea>
+                            <textarea name="MESSAGE" id="message" class="u-fullwidth" placeholder="Optional Message (e.g., details about your request)" rows="4"></textarea>
                         
                             <!-- Submit Button -->
-                            <input 
-                                type="submit" 
-                                name="submit" 
-                                value="Submit" 
-                                class="btn btn--primary u-fullwidth">
-                        
-                            <!-- Status Message -->
-                            <div class="mc-status"></div>
+                            <input type="submit" name="submit" value="Submit" class="btn btn--primary u-fullwidth">
                         </form>
+                        
                     </div>
                 </div>
             </div>
