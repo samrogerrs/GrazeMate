@@ -4037,6 +4037,13 @@ img.u-pull-left {
         object-fit: cover; /* Ensures the image fills its container */
         object-position: left; /* Align the image to the left */
         border-radius: 16px; /* Adds rounded corners */
+
+        -webkit-mask-image: linear-gradient(to right, white 50%, transparent 65%);
+        mask-image: linear-gradient(to right, white 50%, transparent 65%);
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-size: 100% 100%;
+        mask-size: 100% 100%;
     }
 
     /* Ensure parent container accounts for the scaled image */
@@ -4047,6 +4054,7 @@ img.u-pull-left {
         gap: 20px; /* Add spacing between elements */
         padding: 20px; /* Add padding around the container */
     }
+
 }
 
 
