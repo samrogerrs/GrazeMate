@@ -197,7 +197,7 @@
       cycleInterval = setInterval(() => {
         activeIndex = (activeIndex + 1) % buttons.length; // Cycle through the buttons
         setActiveTab(activeIndex);
-      }, 5000); // 5000 ms = 5 seconds
+      }, 10000); // 5000 ms = 5 seconds
     }
   
     // Function to reset the cycle when a button is clicked manually

@@ -4399,6 +4399,13 @@ img.u-pull-left {
     object-fit: contain;
 }
 
+.feature-video {
+    width: 50%;  /* Ensure the video scales to the container's width */
+    max-height: 600px; /* Maintain aspect ratio */
+    border-radius: 16px; /* Match the style of the original image */
+    object-fit: cover; /* Ensures the video fills the container if cropped */
+}
+
 .item-plan--popular .item-plan__block {
     background-color : var(--color-1);
 }
