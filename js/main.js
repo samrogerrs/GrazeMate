@@ -9,7 +9,6 @@
 
     };
 
-
    /* preloader
     * -------------------------------------------------- */
     const ssPreloader = function() {
@@ -214,9 +213,31 @@
     setActiveTab(activeIndex);
     startCycling();
 
-    
-
-
+    document.addEventListener("scroll", () => {
+        const sections = document.querySelectorAll(".scroll-section");
+        const progressIndicator = document.querySelector(".progress-indicator");
+        const totalHeight = document.body.scrollHeight - window.innerHeight;
+        const scrollPosition = window.scrollY;
+      
+        // Update the progress bar height
+        const progressHeight = (scrollPosition / totalHeight) * 100;
+        progressIndicator.style.height = `${progressHeight}%`;
+      
+        // Add or remove "data-active" attribute for each section
+        sections.forEach((section) => {
+          const sectionTop = section.offsetTop;
+          const sectionHeight = section.offsetHeight;
+          const isActive =
+            scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight;
+      
+          if (isActive) {
+            section.setAttribute("data-active", "true");
+          } else {
+            section.removeAttribute("data-active");
+          }
+        });
+      });
+      
 
 /* swiper
  * ------------------------------------------------------ */ 

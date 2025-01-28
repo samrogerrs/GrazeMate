@@ -3663,6 +3663,13 @@ img.u-pull-left {
 }
 
 
+/* ===================================================================
+ * # NUTSHELL
+ *
+ *
+ * ------------------------------------------------------------------- */
+
+
 
 /* ===================================================================
  * # ABOUT
@@ -3791,7 +3798,7 @@ img.u-pull-left {
 
 .sim {
     position: relative;
-    width: 98%; /* Container width */
+    width: 96%; /* Container width */
     margin: 0 auto; /* Center horizontally */
     height: auto; /* Allow height to adjust based on content */
     display: flex;
@@ -3804,11 +3811,12 @@ img.u-pull-left {
     background-size: cover;
     box-shadow: 0 20px 20px rgba(0, 0, 0, 0.3); /* Subtle shadow for depth */
     margin-top: 5vh;
+    padding-top: 5vh;
 }
 
 /* Wrapper for the image */
 .sim-wrapper {
-    width: 90%; /* Fill the width of the container */
+    width: 85%; /* Fill the width of the container */
     aspect-ratio: 16 / 9; /* Maintain a 16:9 aspect ratio */
     position: relative; /* For proper positioning */
     display: flex; /* Center the image */
@@ -3831,17 +3839,18 @@ img.u-pull-left {
 .sim-text {
     width: 100%; /* Make it span the full width of the container */
     color: white; /* White text for contrast */
-    padding: 15px 20px; /* Add spacing for readability */
-    font-size: 4rem; /* Standard font size */
+    padding: 10vh 0px; /* Add spacing for readability */
+    font-size: 6rem; /* Standard font size */
     font-family: Arial, sans-serif; /* Clean font */
     text-align: center; /* Center-align the text */
     position: relative; /* Needed for pseudo-elements */
 }
 .sim-text h3 {
-    font-size: 4rem;
+    font-size: 6rem;
     font-weight: bold;
     color: #f1f2f1;
     margin: 1vh;
+    line-height: 1;
 }
 
 /* Mobile view styles */
@@ -3858,30 +3867,167 @@ img.u-pull-left {
     }
 
     .sim-text {
-        font-size: 0.9rem; /* Slightly smaller text size */
-        padding: 10px 15px; /* Adjust padding */
+        font-size: 5rem; /* Slightly smaller text size */
+        padding: 5vh 0px; /* Adjust padding */
     }
     .sim-text h3 {
-        font-size: 2rem;
+        font-size: 5rem;
         font-weight: bold;
         color: #f1f2f1;
         margin: 1vh;
     }
 }
 
+/* --------------------------------------------------------------------
+ * ## phones
+ * -------------------------------------------------------------------- */
 
+/* Overall Container */
+.how-it-works-container {
+    width: 100%;
+    padding: 20vh 5%;
+    background: linear-gradient(135deg, #f7f9fc, #e8eef5);
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Main Heading */
+  .section-heading {
+    text-align: center;
+    font-size: 3rem;
+    font-weight: 800;
+    color: #4a4a4a;
+    margin-bottom: 40px;
+  }
+  
+  /* Showcase Items */
+  .showcase-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 20vh;
+  }
+  
+  .showcase-item.reverse {
+    flex-direction: row-reverse;
+  }
+  
+  /* Text Overlay */
+  .text-overlay {
+    width: 35%;
+    padding: 20px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+  }
+  
+  .text-overlay h1 {
+    font-size: 6rem;
+    font-weight: 800;
+    color: #161616;
+    margin-bottom: 20px;
+  }
+  
+  .text-overlay p {
+    font-size: 1.5rem;
+    line-height: 1.6;
+    color: #555;
+  }
+  
+  /* Image Wrapper */
+  .image-wrapper {
+    width: 25%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    border-radius: 20px;
+    padding: 5vh;
+  }
+  
+  .image-wrapper img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    border-radius: 20px;
+    transition: transform 0.4s ease;
+  }
+  
+  .image-wrapper:hover img {
+    transform: scale(1.05);
+  }
+  
+  /* Video Section */
+  .video-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 20vh;
+  }
+  
+  .video-wrapper {
+    width: 40%;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  }
+  
+  .video-wrapper video {
+    width: 100%;
+    height: auto;
+    border-radius: 20px;
+  }
+  
+  .text-overlay + .video-wrapper video {
+    margin-top: 0;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 1024px) {
+    .showcase-item,
+    .video-section {
+      flex-direction: column;
+      gap: 20px;
+    }
+  
+    .text-overlay {
+      width: 80%;
+      text-align: center;
+    }
+  
+    .image-wrapper,
+    .video-wrapper {
+      width: 50%;
+    }
+  }
+  
 
 /* --------------------------------------------------------------------
  * ## ipad
  * -------------------------------------------------------------------- */
 
 /* Default styles */
-.ipad-app {
+
+.ipad-container {
+    width: 96%; /* Make the container take up 98% of the viewport width */
+    margin: 0 auto; /* Center the container horizontally */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px 0; /* Add vertical spacing */
+  }
+  
+  /* iPad app section */
+  .ipad-app {
     position: relative; /* Makes the container positioned */
     width: 100%; /* Make it responsive to the container's size */
-    height: 100vh; /* Default height of the image container */
+    aspect-ratio: 16 / 9; /* Maintain a 16:9 aspect ratio */
     overflow: hidden; /* Ensures cropped content is hidden */
-}
+    border-radius: 16px; /* Rounded corners */
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2); /* Optional: Shadow for emphasis */
+  }
 
 /* The image itself */
 .ipad-app img {
@@ -3889,7 +4035,7 @@ img.u-pull-left {
     top: 0;
     width: 100%; /* Ensures the image scales horizontally */
     height: 100%; /* Ensures the image fills the container height */
-    object-fit: cover; /* Crops the image while maintaining its aspect ratio */
+    object-fit: contain; /* Crops the image while maintaining its aspect ratio */
     object-position: center; /* Focus on the left side of the image */
     border-radius: 16px; /* Add rounded corners */
     box-shadow: 0 20px 20px rgba(0, 0, 0, 0.2); /* Optional: Subtle shadow */
@@ -3929,7 +4075,6 @@ img.u-pull-left {
         content: url(../images/ipad-phone-view.png); /* Switch to a different image */
         object-fit: cover; /* Keeps the image proportional */
         object-position: left top; /* Focus on the top-left corner */
-        transform: scale(0.95); /* Slight zoom for better focus */
     }
 
     .ipad-text {
