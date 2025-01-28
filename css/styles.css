@@ -3905,13 +3905,13 @@ img.u-pull-left {
     font-family: Arial, sans-serif;
     padding: 20px;
     border-radius: 12px;
-    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
 }
 
 
 .ipad-text h3 {
     font-size: 6rem;
     margin-bottom: 15px;
+    line-height: 1;
     font-weight: bold;
     color: #f1f2f1;
 }
@@ -3921,14 +3921,27 @@ img.u-pull-left {
 /* Mobile view styles */
 @media (max-width: 768px) {
     .ipad-app {
-        height: 100vh; /* Adjust height dynamically on mobile */
+        height: 120vh; /* Adjust height dynamically on mobile */
         aspect-ratio: 9 / 16; /* Enforce a portrait aspect ratio */
     }
 
     .ipad-app img {
+        content: url(../images/ipad-phone-view.png); /* Switch to a different image */
         object-fit: cover; /* Keeps the image proportional */
         object-position: left top; /* Focus on the top-left corner */
-        transform: scale(1.2); /* Slight zoom for better focus */
+        transform: scale(0.95); /* Slight zoom for better focus */
+    }
+
+    .ipad-text {
+        position: absolute; /* Overlay the text on the image */
+        top: 2%; /* Vertically center the text */
+        transform: translateX(0);
+        text-align: center;
+        color: white;
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        border-radius: 12px;
+        line-height: 1.5;
     }
 }
 
