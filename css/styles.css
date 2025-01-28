@@ -4188,7 +4188,9 @@ img.u-pull-left {
 /* --------------------------------------------------------------------
  * ## features
  * -------------------------------------------------------------------- */
-
+ #features {
+    display: none !important;
+  }
 
  .s-about__features {
     margin-top : calc(6 * var(--space));
