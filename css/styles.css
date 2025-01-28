@@ -2752,6 +2752,7 @@ td:last-child {
 .body-text-2 {
     font-size   : calc(var(--text-size) * 0.9444);
     line-height : calc(0.9375 * var(--space));
+    color: #f8f8f8;
 }
 
 .body-text-3 {
@@ -3376,6 +3377,7 @@ img.u-pull-left {
 
 .s-intro__content-desc {
     margin-bottom : var(--vspace-0_625);
+    color: white;
 }
 
 .s-intro__content-title {
@@ -3781,6 +3783,155 @@ img.u-pull-left {
     }
 }
 
+/* --------------------------------------------------------------------
+ * ## sim
+ * -------------------------------------------------------------------- */
+
+/* Container styles */
+
+.sim {
+    position: relative;
+    width: 98%; /* Container width */
+    margin: 0 auto; /* Center horizontally */
+    height: auto; /* Allow height to adjust based on content */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px; /* Rounded corners */
+    overflow: hidden; /* Ensure content stays inside */
+    background-image: url(../images/plant.png); /* Black rectangle background */
+    background-size: cover;
+    box-shadow: 0 20px 20px rgba(0, 0, 0, 0.3); /* Subtle shadow for depth */
+    margin-top: 5vh;
+}
+
+/* Wrapper for the image */
+.sim-wrapper {
+    width: 90%; /* Fill the width of the container */
+    aspect-ratio: 16 / 9; /* Maintain a 16:9 aspect ratio */
+    position: relative; /* For proper positioning */
+    display: flex; /* Center the image */
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* Image styles */
+.sim-wrapper img {
+    width: 96%; /* Scale image to fill the container */
+    height: 96%; /* Scale image to fill the height */
+    object-fit: contain; /* Crop image while maintaining aspect ratio */
+    object-position: 45% 50%; /* Focus on the left center of the image */
+    border-radius: 16px; /* Rounded corners on the top only */
+    margin-top: 4%;
+}
+
+/* Text "notch" area */
+.sim-text {
+    width: 100%; /* Make it span the full width of the container */
+    color: white; /* White text for contrast */
+    padding: 15px 20px; /* Add spacing for readability */
+    font-size: 4rem; /* Standard font size */
+    font-family: Arial, sans-serif; /* Clean font */
+    text-align: center; /* Center-align the text */
+    position: relative; /* Needed for pseudo-elements */
+}
+.sim-text h3 {
+    font-size: 4rem;
+    font-weight: bold;
+    color: #f1f2f1;
+    margin: 1vh;
+}
+
+/* Mobile view styles */
+@media (max-width: 768px) {
+    .sim {
+       height: 95vh; /* Slightly smaller width for smaller screens */
+    }
+
+    .sim-wrapper {
+        aspect-ratio: 9 / 16; /* Adjust to portrait aspect ratio */
+    }
+    .sim-wrapper img {
+        object-fit: cover;
+    }
+
+    .sim-text {
+        font-size: 0.9rem; /* Slightly smaller text size */
+        padding: 10px 15px; /* Adjust padding */
+    }
+    .sim-text h3 {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #f1f2f1;
+        margin: 1vh;
+    }
+}
+
+
+
+/* --------------------------------------------------------------------
+ * ## ipad
+ * -------------------------------------------------------------------- */
+
+/* Default styles */
+.ipad-app {
+    position: relative; /* Makes the container positioned */
+    width: 100%; /* Make it responsive to the container's size */
+    height: 100vh; /* Default height of the image container */
+    overflow: hidden; /* Ensures cropped content is hidden */
+}
+
+/* The image itself */
+.ipad-app img {
+    position: absolute;
+    top: 0;
+    width: 100%; /* Ensures the image scales horizontally */
+    height: 100%; /* Ensures the image fills the container height */
+    object-fit: cover; /* Crops the image while maintaining its aspect ratio */
+    object-position: center; /* Focus on the left side of the image */
+    border-radius: 16px; /* Add rounded corners */
+    box-shadow: 0 20px 20px rgba(0, 0, 0, 0.2); /* Optional: Subtle shadow */
+}
+
+.ipad-text {
+    position: absolute; /* Overlay the text on the image */
+    top: 50%; /* Vertically center the text */
+    right: 0; /* Horizontally center the text */
+    transform: translate(-15%,-60%); /* Adjust for centering */
+    text-align: center;
+    color: white;
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+
+.ipad-text h3 {
+    font-size: 6rem;
+    margin-bottom: 15px;
+    font-weight: bold;
+    color: #f1f2f1;
+}
+
+
+
+/* Mobile view styles */
+@media (max-width: 768px) {
+    .ipad-app {
+        height: 100vh; /* Adjust height dynamically on mobile */
+        aspect-ratio: 9 / 16; /* Enforce a portrait aspect ratio */
+    }
+
+    .ipad-app img {
+        object-fit: cover; /* Keeps the image proportional */
+        object-position: left top; /* Focus on the top-left corner */
+        transform: scale(1.2); /* Slight zoom for better focus */
+    }
+}
+
 
 /* --------------------------------------------------------------------
  * ## how-to
@@ -4038,12 +4189,6 @@ img.u-pull-left {
         object-position: left; /* Align the image to the left */
         border-radius: 16px; /* Adds rounded corners */
 
-        -webkit-mask-image: linear-gradient(to right, white 50%, transparent 65%);
-        mask-image: linear-gradient(to right, white 50%, transparent 65%);
-        -webkit-mask-repeat: no-repeat;
-        mask-repeat: no-repeat;
-        -webkit-mask-size: 100% 100%;
-        mask-size: 100% 100%;
     }
 
     /* Ensure parent container accounts for the scaled image */
