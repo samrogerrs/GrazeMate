@@ -3889,120 +3889,162 @@ img.u-pull-left {
     background: linear-gradient(135deg, #f7f9fc, #e8eef5);
     display: flex;
     flex-direction: column;
-  }
-  
-  /* Main Heading */
-  .section-heading {
+    align-items: center;
+}
+
+/* Main Heading */
+.section-heading {
     text-align: center;
     font-size: 3rem;
     font-weight: 800;
     color: #4a4a4a;
     margin-bottom: 40px;
-  }
-  
-  /* Showcase Items */
-  .showcase-item {
+}
+
+/* Showcase Items */
+.showcase-item {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 40px; /* Increased gap for better spacing */
     justify-content: center;
     margin-bottom: 20vh;
-  }
-  
-  .showcase-item.reverse {
+    flex-wrap: wrap; /* Ensure proper wrapping on smaller screens */
+}
+
+.showcase-item.reverse {
     flex-direction: row-reverse;
-  }
-  
-  /* Text Overlay */
-  .text-overlay {
+}
+
+/* Text Overlay */
+.text-overlay {
     width: 35%;
+    min-width: 280px; /* Minimum width for smaller screens */
     padding: 20px;
     background: white;
     border-radius: 20px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
-  }
-  
-  .text-overlay h1 {
-    font-size: 6rem;
+}
+
+.text-overlay h1 {
+    font-size: 6rem; /* Adjusted for better scalability */
     font-weight: 800;
     color: #161616;
     margin-bottom: 20px;
-  }
-  
-  .text-overlay p {
+}
+
+.text-overlay p {
     font-size: 1.5rem;
     line-height: 1.6;
     color: #555;
-  }
-  
-  /* Image Wrapper */
-  .image-wrapper {
-    width: 25%;
+}
+
+/* Image Wrapper */
+.image-wrapper {
+    width: 30%;
+    min-width: 220px; /* Minimum width for smaller images */
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
     border-radius: 20px;
     padding: 5vh;
-  }
-  
-  .image-wrapper img {
+}
+
+.image-wrapper img {
     width: 100%;
     height: auto;
     object-fit: contain;
     border-radius: 20px;
     transition: transform 0.4s ease;
-  }
-  
-  .image-wrapper:hover img {
+}
+
+.image-wrapper:hover img {
     transform: scale(1.05);
-  }
-  
-  /* Video Section */
-  .video-section {
+}
+
+/* Video Section */
+.video-section {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 40px; /* Consistent spacing with showcase items */
     justify-content: center;
     margin-bottom: 20vh;
-  }
-  
-  .video-wrapper {
-    width: 40%;
+    flex-wrap: wrap; /* Ensure wrapping on smaller screens */
+}
+
+.video-wrapper {
+    width: 50%; /* Adjusted for better balance */
+    min-width: 300px; /* Minimum size for smaller screens */
+    max-width: 600px; /* Prevent video from getting too large */
     border-radius: 20px;
     overflow: hidden;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-  }
-  
-  .video-wrapper video {
+}
+
+.video-wrapper video {
     width: 100%;
     height: auto;
     border-radius: 20px;
-  }
-  
-  .text-overlay + .video-wrapper video {
-    margin-top: 0;
-  }
-  
-  /* Responsive Design */
-  @media (max-width: 1024px) {
+}
+
+/* Responsive Adjustments */
+@media (max-width: 1024px) {
+    .text-overlay {
+        width: 45%; /* Allow more flexibility on medium screens */
+    }
+    .image-wrapper {
+        width: 35%;
+    }
+}
+
+@media (max-width: 768px) {
     .showcase-item,
     .video-section {
-      flex-direction: column;
-      gap: 20px;
+        flex-direction: column; /* Stack elements */
+        align-items: center;
+        gap: 20px; /* Smaller gap for stacked layout */
     }
-  
+
     .text-overlay {
-      width: 80%;
-      text-align: center;
+        width: 90%; /* Expand text box to use available space */
+        min-width: 250px; /* Still maintain a reasonable minimum width */
     }
-  
-    .image-wrapper,
+
+    .text-overlay h1 {
+        font-size: 4rem;
+    }
+
+    .text-overlay p {
+        font-size: 1.5rem;
+    }
+
+    .image-wrapper {
+        width: 90%; /* Use more width on smaller screens */
+    }
+
     .video-wrapper {
-      width: 50%;
+        width: 90%; /* Expand video container */
     }
-  }
-  
+}
+
+@media (max-width: 480px) {
+    .text-overlay h1 {
+        font-size: 1.8rem;
+    }
+
+    .text-overlay p {
+        font-size: 1rem;
+    }
+
+    .image-wrapper {
+        width: 100%; /* Full-width images */
+    }
+
+    .video-wrapper {
+        width: 100%; /* Full-width video */
+    }
+}
+
 
 /* --------------------------------------------------------------------
  * ## ipad
