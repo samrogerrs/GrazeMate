@@ -2965,6 +2965,8 @@ img.u-pull-left {
   vertical-align: bottom;
 }
 
+
+
 /* --------------------------------------------------------------------
  * ## main navigation
  * -------------------------------------------------------------------- */
@@ -3141,12 +3143,11 @@ img.u-pull-left {
 
 @media screen and (max-width: 800px) {
   .s-header {
-    --logo-width: 80px;
+    --logo-width: 200px;
     top: var(--vspace-0_5);
   }
 
   .s-header__inner {
-    max-width: none;
     width: 100%;
     margin: 0;
     padding: 0;
@@ -3161,8 +3162,7 @@ img.u-pull-left {
   .s-header__logo {
     position: absolute;
     left: 0;
-    top: 50%;
-    transform: scale(20);
+    top: 35px;
     transform: translate(4.2rem, -50%);
   }
 
@@ -3661,13 +3661,15 @@ img.u-pull-left {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: -15px;
+  gap: 5px; /* Fix negative gap */
   padding: 25px;
-  background: #585958;
+  padding-top: 50px;
+  background: linear-gradient(135deg, #424242, #303030); /* Dark gradient */
   border-radius: 20px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+
 
 .feature-item:hover {
   transform: translateY(-5px);
@@ -3685,6 +3687,12 @@ img.u-pull-left {
   font-weight: 600;
   color: #ffffff;
   margin: 0;
+}
+
+.feature-item svg {
+  fill: rgba(255, 255, 255, 0.9); /* Slight transparency */
+  width: 60px; /* Slightly larger */
+  height: 60px;
 }
 
 
@@ -3826,7 +3834,7 @@ img.u-pull-left {
   /* Mobile view adjustments */
   @media (max-width: 768px) {
     .sim-wrapper {
-      aspect-ratio: 9 / 16; /* Portrait aspect ratio for narrow screens */
+      aspect-ratio: 1/2; /* Portrait aspect ratio for narrow screens */
     }
   
     .sim-wrapper img {
@@ -3988,12 +3996,16 @@ img.u-pull-left {
 }
 
 @media (max-width: 768px) {
-  .showcase-item,
-  .video-section {
+  .showcase-item, .video-section {
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    text-align: center;
+    background: #f8f9fa; /* Light background to unify the block */
+    padding: 20px; /* Space around content */
+    border-radius: 20px; /* Rounded corners */
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); /* Soft shadow for definition */
   }
+
 
   .text-overlay {
     width: 90%;
@@ -4002,6 +4014,8 @@ img.u-pull-left {
     padding-top: 0;
     padding-bottom: 0;
     text-align: center;
+    box-shadow: none;
+    background: none;
   }
 
   .text-overlay h1 {
