@@ -528,6 +528,7 @@ body {
 
 body {
   background: linear-gradient(135deg, #f7f9fc, #e8eef5);
+  background-attachment: fixed;
   -webkit-overflow-scrolling: touch;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
@@ -3955,7 +3956,6 @@ img.u-pull-left {
   max-width: 600px;
   border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
   position: sticky;
   top: 10vh;
 }
