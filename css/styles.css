@@ -4101,7 +4101,7 @@ img.u-pull-left {
     }
   }
 
-  @media (max-width: 480px) {
+  @media (max-width: 600px) {
     .ipad-app {
       aspect-ratio: 9 / 16; /* Adjust for mobile portrait */
     }
@@ -4113,7 +4113,7 @@ img.u-pull-left {
     }
   
     .ipad-text {
-      top: 2vh; /* Moves text to the upper part of the image */
+      top: 0; /* Moves text to the upper part of the image */
       left: 50%;
       transform: translateX(-50%); /* Ensure text is centered */
       width: 90vw; /* Now takes 90% of the container width */
