@@ -4100,6 +4100,36 @@ img.u-pull-left {
       font-size: 1.2rem;
     }
   }
+
+  @media (max-width: 480px) {
+    .ipad-app {
+      aspect-ratio: 9 / 16; /* Adjust for mobile portrait */
+    }
+  
+    .ipad-app img {
+      content: url(../images/ipad-phone-view.png); /* Mobile-specific image */
+      object-fit: cover;
+      object-position: center top;
+    }
+  
+    .ipad-text {
+      top: 2vh; /* Moves text to the upper part of the image */
+      left: 50%;
+      transform: translateX(-50%); /* Ensure text is centered */
+      width: 90vw; /* Now takes 90% of the container width */
+      max-width: 85%; /* Ensure it doesn’t get limited */
+      text-align: center;
+      padding: 15px;
+    }
+  
+    .ipad-text h3 {
+      font-size: 5rem;
+    }
+  
+    .ipad-text p {
+      font-size: 1.2rem;
+    }
+  }
   
 
 /* --------------------------------------------------------------------
