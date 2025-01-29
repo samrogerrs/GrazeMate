@@ -499,11 +499,12 @@
           }
         });
       },
-      { threshold: 0.2 } // Triggers when 20% of the element is visible
+      { threshold: 0.4} // Triggers when 20% of the element is visible
     );
 
     hiddenSections.forEach((section) => observer.observe(section));
   });
+
 
   /* smoothscroll
    * ------------------------------------------------------ */
