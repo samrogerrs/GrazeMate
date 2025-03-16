@@ -51,7 +51,7 @@
     </model>
 
     <!-- Cow (Sphere) -->
-    <model name="cow">
+    <model name="cow1">
       <pose>0 2 0.5 0 0 0</pose>
       <link name="body">
         <inertial>
@@ -68,16 +68,16 @@
         <collision name="collision">
           <geometry>
             <cylinder>
-              <radius>1</radius>
-              <length>1</length>
+              <radius>0.25</radius>
+              <length>0.25</length>
             </cylinder>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
             <cylinder>
-              <radius>1</radius>
-              <length>1</length>
+              <radius>0.25</radius>
+              <length>0.25</length>
             </cylinder>
           </geometry>
           <material>
@@ -89,11 +89,509 @@
       </link>
 
         <!-- Add a velocity controller plugin -->
-  <plugin filename="libignition-gazebo-velocity-control-system.so" 
+      <plugin filename="libignition-gazebo-velocity-control-system.so" 
             name="ignition::gazebo::systems::VelocityControl">
-      <topic>/drone/cmd_vel</topic>
-    </plugin>
+        <topic>/cow1/cmd_vel</topic>
+      </plugin>
     </model>
+
+    <!-- Cow (Sphere) -->
+    <model name="cow2">
+      <pose>5 -2 0.5 0 0 0</pose>
+      <link name="body">
+        <inertial>
+          <mass>10.0</mass>
+          <inertia>
+            <ixx>1.0</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1.0</iyy>
+            <iyz>0</iyz>
+            <izz>1.0</izz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.7 0.5 1</ambient>
+            <diffuse>0.9 0.7 0.5 1</diffuse>
+            <specular>0.9 0.7 0.5 1</specular>
+          </material>
+        </visual>
+      </link>
+        <!-- Add a velocity controller plugin -->
+      <plugin filename="libignition-gazebo-velocity-control-system.so" 
+            name="ignition::gazebo::systems::VelocityControl">
+        <topic>/cow2/cmd_vel</topic>
+      </plugin>
+    </model>
+
+
+    <!-- Cow (Sphere) -->
+    <model name="cow3">
+      <pose>5 -2 0.5 0 0 0</pose>
+      <link name="body">
+        <inertial>
+          <mass>10.0</mass>
+          <inertia>
+            <ixx>1.0</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1.0</iyy>
+            <iyz>0</iyz>
+            <izz>1.0</izz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.7 0.5 1</ambient>
+            <diffuse>0.9 0.7 0.5 1</diffuse>
+            <specular>0.9 0.7 0.5 1</specular>
+          </material>
+        </visual>
+      </link>
+        <!-- Add a velocity controller plugin -->
+      <plugin filename="libignition-gazebo-velocity-control-system.so" 
+            name="ignition::gazebo::systems::VelocityControl">
+        <topic>/cow3/cmd_vel</topic>
+      </plugin>
+    </model>
+
+
+    <!-- Cow (Sphere) -->
+    <model name="cow4">
+      <pose>3 -3 0.5 0 0 0</pose>
+      <link name="body">
+        <inertial>
+          <mass>10.0</mass>
+          <inertia>
+            <ixx>1.0</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1.0</iyy>
+            <iyz>0</iyz>
+            <izz>1.0</izz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.7 0.5 1</ambient>
+            <diffuse>0.9 0.7 0.5 1</diffuse>
+            <specular>0.9 0.7 0.5 1</specular>
+          </material>
+        </visual>
+      </link>
+        <!-- Add a velocity controller plugin -->
+      <plugin filename="libignition-gazebo-velocity-control-system.so" 
+            name="ignition::gazebo::systems::VelocityControl">
+        <topic>/cow4/cmd_vel</topic>
+      </plugin>
+    </model>
+
+
+    <!-- Cow (Sphere) -->
+    <model name="cow5">
+      <pose>6 -1 0.5 0 0 0</pose>
+      <link name="body">
+        <inertial>
+          <mass>10.0</mass>
+          <inertia>
+            <ixx>1.0</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1.0</iyy>
+            <iyz>0</iyz>
+            <izz>1.0</izz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.7 0.5 1</ambient>
+            <diffuse>0.9 0.7 0.5 1</diffuse>
+            <specular>0.9 0.7 0.5 1</specular>
+          </material>
+        </visual>
+      </link>
+        <!-- Add a velocity controller plugin -->
+      <plugin filename="libignition-gazebo-velocity-control-system.so" 
+            name="ignition::gazebo::systems::VelocityControl">
+        <topic>/cow5/cmd_vel</topic>
+      </plugin>
+    </model>
+
+
+
+    <!-- Cow (Sphere) -->
+    <model name="cow6">
+      <pose>6 2 0.5 0 0 0</pose>
+      <link name="body">
+        <inertial>
+          <mass>10.0</mass>
+          <inertia>
+            <ixx>1.0</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1.0</iyy>
+            <iyz>0</iyz>
+            <izz>1.0</izz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.7 0.5 1</ambient>
+            <diffuse>0.9 0.7 0.5 1</diffuse>
+            <specular>0.9 0.7 0.5 1</specular>
+          </material>
+        </visual>
+      </link>
+        <!-- Add a velocity controller plugin -->
+      <plugin filename="libignition-gazebo-velocity-control-system.so" 
+            name="ignition::gazebo::systems::VelocityControl">
+        <topic>/cow6/cmd_vel</topic>
+      </plugin>
+    </model>
+
+
+
+    <!-- Cow (Sphere) -->
+    <model name="cow7">
+      <pose>0 -2 0.5 0 0 0</pose>
+      <link name="body">
+        <inertial>
+          <mass>10.0</mass>
+          <inertia>
+            <ixx>1.0</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1.0</iyy>
+            <iyz>0</iyz>
+            <izz>1.0</izz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.7 0.5 1</ambient>
+            <diffuse>0.9 0.7 0.5 1</diffuse>
+            <specular>0.9 0.7 0.5 1</specular>
+          </material>
+        </visual>
+      </link>
+
+        <!-- Add a velocity controller plugin -->
+      <plugin filename="libignition-gazebo-velocity-control-system.so" 
+            name="ignition::gazebo::systems::VelocityControl">
+        <topic>/cow7/cmd_vel</topic>
+      </plugin>
+    </model>
+
+    <!-- Cow (Sphere) -->
+    <model name="cow8">
+      <pose>-5 -2 0.5 0 0 0</pose>
+      <link name="body">
+        <inertial>
+          <mass>10.0</mass>
+          <inertia>
+            <ixx>1.0</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1.0</iyy>
+            <iyz>0</iyz>
+            <izz>1.0</izz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.7 0.5 1</ambient>
+            <diffuse>0.9 0.7 0.5 1</diffuse>
+            <specular>0.9 0.7 0.5 1</specular>
+          </material>
+        </visual>
+      </link>
+        <!-- Add a velocity controller plugin -->
+      <plugin filename="libignition-gazebo-velocity-control-system.so" 
+            name="ignition::gazebo::systems::VelocityControl">
+        <topic>/cow8/cmd_vel</topic>
+      </plugin>
+    </model>
+
+
+    <!-- Cow (Sphere) -->
+    <model name="cow9">
+      <pose>-5 -2 0.5 0 0 0</pose>
+      <link name="body">
+        <inertial>
+          <mass>10.0</mass>
+          <inertia>
+            <ixx>1.0</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1.0</iyy>
+            <iyz>0</iyz>
+            <izz>1.0</izz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.7 0.5 1</ambient>
+            <diffuse>0.9 0.7 0.5 1</diffuse>
+            <specular>0.9 0.7 0.5 1</specular>
+          </material>
+        </visual>
+      </link>
+        <!-- Add a velocity controller plugin -->
+      <plugin filename="libignition-gazebo-velocity-control-system.so" 
+            name="ignition::gazebo::systems::VelocityControl">
+        <topic>/cow9/cmd_vel</topic>
+      </plugin>
+    </model>
+
+
+    <!-- Cow (Sphere) -->
+    <model name="cow10">
+      <pose>-3 -3 0.5 0 0 0</pose>
+      <link name="body">
+        <inertial>
+          <mass>10.0</mass>
+          <inertia>
+            <ixx>1.0</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1.0</iyy>
+            <iyz>0</iyz>
+            <izz>1.0</izz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.7 0.5 1</ambient>
+            <diffuse>0.9 0.7 0.5 1</diffuse>
+            <specular>0.9 0.7 0.5 1</specular>
+          </material>
+        </visual>
+      </link>
+        <!-- Add a velocity controller plugin -->
+      <plugin filename="libignition-gazebo-velocity-control-system.so" 
+            name="ignition::gazebo::systems::VelocityControl">
+        <topic>/cow10/cmd_vel</topic>
+      </plugin>
+    </model>
+
+
+    <!-- Cow (Sphere) -->
+    <model name="cow11">
+      <pose>-6 -1 0.5 0 0 0</pose>
+      <link name="body">
+        <inertial>
+          <mass>10.0</mass>
+          <inertia>
+            <ixx>1.0</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1.0</iyy>
+            <iyz>0</iyz>
+            <izz>1.0</izz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.7 0.5 1</ambient>
+            <diffuse>0.9 0.7 0.5 1</diffuse>
+            <specular>0.9 0.7 0.5 1</specular>
+          </material>
+        </visual>
+      </link>
+        <!-- Add a velocity controller plugin -->
+      <plugin filename="libignition-gazebo-velocity-control-system.so" 
+            name="ignition::gazebo::systems::VelocityControl">
+        <topic>/cow11/cmd_vel</topic>
+      </plugin>
+    </model>
+
+
+
+    <!-- Cow (Sphere) -->
+    <model name="cow12">
+      <pose>-6 2 0.5 0 0 0</pose>
+      <link name="body">
+        <inertial>
+          <mass>10.0</mass>
+          <inertia>
+            <ixx>1.0</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1.0</iyy>
+            <iyz>0</iyz>
+            <izz>1.0</izz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.7 0.5 1</ambient>
+            <diffuse>0.9 0.7 0.5 1</diffuse>
+            <specular>0.9 0.7 0.5 1</specular>
+          </material>
+        </visual>
+      </link>
+        <!-- Add a velocity controller plugin -->
+      <plugin filename="libignition-gazebo-velocity-control-system.so" 
+            name="ignition::gazebo::systems::VelocityControl">
+        <topic>/cow12/cmd_vel</topic>
+      </plugin>
+    </model>
+    
     
 
     <!-- Drone (Cylinder) -->

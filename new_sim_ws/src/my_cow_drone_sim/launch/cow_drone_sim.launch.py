@@ -29,16 +29,37 @@ def generate_launch_description():
             ],
             output='screen'),
             
-        # In your launch file, update the bridge arguments
+        # Updated bridge to handle both cow topics
         Node(
             package='ros_gz_bridge',
             executable='parameter_bridge',
             name='ros_gz_bridge',
             arguments=[
                 '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
-                # Make sure this matches exactly the topic your node publishes to
-                # and what the plugin in Gazebo expects
-                '/drone/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist'
+
+                '/cow1/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
+
+                '/cow2/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
+
+                '/cow3/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
+
+                '/cow4/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
+
+                '/cow5/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
+
+                '/cow6/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
+
+                '/cow7/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
+
+                '/cow8/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
+
+                '/cow9/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
+
+                '/cow10/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
+
+                '/cow11/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
+
+                '/cow12/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist'
             ],
             output='screen'
         ),
@@ -48,6 +69,6 @@ def generate_launch_description():
             package='my_cow_drone_sim',
             executable='controller_node',
             name='cow_drone_controller',
-            parameters=[{'use_sim_time': use_sim_time}, {'number_of_cattle': 5}],
+            parameters=[{'use_sim_time': use_sim_time}],
             output='screen'),
     ])
