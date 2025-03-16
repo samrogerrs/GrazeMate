@@ -1,0 +1,3 @@
+[console_scripts]
+controller_node = my_cow_drone_sim.controller_node:main
+
