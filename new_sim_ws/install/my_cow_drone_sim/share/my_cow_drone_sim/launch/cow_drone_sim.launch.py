@@ -48,6 +48,6 @@ def generate_launch_description():
             package='my_cow_drone_sim',
             executable='controller_node',
             name='cow_drone_controller',
-            parameters=[{'use_sim_time': use_sim_time}],
+            parameters=[{'use_sim_time': use_sim_time}, {'number_of_cattle': 5}],
             output='screen'),
     ])

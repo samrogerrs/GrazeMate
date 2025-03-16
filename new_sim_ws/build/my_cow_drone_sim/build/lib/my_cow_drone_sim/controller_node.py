@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import rclpy
+import random
 from rclpy.node import Node
 from std_msgs.msg import String
 from geometry_msgs.msg import Twist
@@ -37,8 +38,8 @@ class CowDroneController(Node):
         """
         vel_msg = Twist()
         # Ensure all velocity components are properly initialized as floats
-        vel_msg.linear.x = 10.0  # Forward velocity
-        vel_msg.linear.y = 0.0
+        vel_msg.linear.x = random.uniform(-1.0, 1.0)
+        vel_msg.linear.y = random.uniform(-1.0, 1.0)
         vel_msg.linear.z = 0.0
         vel_msg.angular.x = 0.0
         vel_msg.angular.y = 0.0
