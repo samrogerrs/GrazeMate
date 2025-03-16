@@ -1,243 +1,206 @@
 #!/usr/bin/env python3
 import rclpy
 import random
+import math
+import numpy as np
 from rclpy.node import Node
 from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 
-class CowDroneController(Node):
+class CowBoidsControllerSimple(Node):
     """
-    Controller node for the cow and drone simulation.
+    Controller node for cattle using boids flocking algorithm.
+    This version uses estimated positions instead of relying on odometry feedback.
     """
     def __init__(self):
-        super().__init__('cow_drone_controller')
+        super().__init__('cow_boids_controller')
         self.publisher_ = self.create_publisher(String, 'simulation_status', 10)
         
-        # Publishers for two cows
-        self.cow1_vel_publisher = self.create_publisher(Twist, '/cow1/cmd_vel', 10)
-        self.cow2_vel_publisher = self.create_publisher(Twist, '/cow2/cmd_vel', 10)
-        self.cow3_vel_publisher = self.create_publisher(Twist, '/cow3/cmd_vel', 10)
-        self.cow4_vel_publisher = self.create_publisher(Twist, '/cow4/cmd_vel', 10)
-        self.cow5_vel_publisher = self.create_publisher(Twist, '/cow5/cmd_vel', 10)
-        self.cow6_vel_publisher = self.create_publisher(Twist, '/cow6/cmd_vel', 10)
-        self.cow7_vel_publisher = self.create_publisher(Twist, '/cow7/cmd_vel', 10)
-        self.cow8_vel_publisher = self.create_publisher(Twist, '/cow8/cmd_vel', 10)
-        self.cow9_vel_publisher = self.create_publisher(Twist, '/cow9/cmd_vel', 10)
-        self.cow10_vel_publisher = self.create_publisher(Twist, '/cow10/cmd_vel', 10)
-        self.cow11_vel_publisher = self.create_publisher(Twist, '/cow11/cmd_vel', 10)
-        self.cow12_vel_publisher = self.create_publisher(Twist, '/cow12/cmd_vel', 10)
+        # Parameters for boids algorithm
+        self.cohesion_factor = 0.05      # Attraction to center of mass
+        self.separation_factor = 0.05     # Repulsion from other cows
+        self.alignment_factor = 0.02      # Velocity matching
+        self.separation_distance = 2.0    # Minimum distance between cows
+        self.perception_radius = 10.0     # How far cows can "see"
+        self.max_speed = 0.8              # Maximum linear velocity
+        self.max_angular_speed = 1.5      # Maximum angular velocity
+        self.random_factor = 0.1          # Random movement factor
         
-        # Create timer for periodic status updates
-        self.timer = self.create_timer(1.0, self.timer_callback)
-        self.get_logger().info('Cow Drone Controller has started')
+        # Store estimated positions of all cows
+        self.num_cows = 12
+        self.cow_vel_publishers = {}
+        self.estimated_positions = {}  # We'll estimate positions based on commanded velocities
+        self.estimated_velocities = {}
+        
+        # Initialize positions from world file (approximately)
+        initial_positions = {
+            'cow1': np.array([0.0, 2.0, 0.5]),
+            'cow2': np.array([5.0, -2.0, 0.5]),
+            'cow3': np.array([5.0, -2.0, 0.5]),
+            'cow4': np.array([3.0, -3.0, 0.5]),
+            'cow5': np.array([6.0, -1.0, 0.5]),
+            'cow6': np.array([6.0, 2.0, 0.5]),
+            'cow7': np.array([0.0, -2.0, 0.5]),
+            'cow8': np.array([-5.0, -2.0, 0.5]),
+            'cow9': np.array([-5.0, -2.0, 0.5]),
+            'cow10': np.array([-3.0, -3.0, 0.5]),
+            'cow11': np.array([-6.0, -1.0, 0.5]),
+            'cow12': np.array([-6.0, 2.0, 0.5])
+        }
+        
+        # Create publishers and initialize positions
+        for i in range(1, self.num_cows + 1):
+            cow_id = f'cow{i}'
+            self.cow_vel_publishers[cow_id] = self.create_publisher(
+                Twist, f'/{cow_id}/cmd_vel', 10)
+            
+            self.estimated_positions[cow_id] = initial_positions[cow_id]
+            self.estimated_velocities[cow_id] = np.zeros(3)
+        
+        # Create timer for periodic updates
+        self.update_interval = 0.1  # seconds
+        self.timer = self.create_timer(self.update_interval, self.boids_update)
+        self.get_logger().info('Cow Boids Controller has started')
 
-    def timer_callback(self):
+    def boids_update(self):
         """
-        Periodic callback to publish status messages.
+        Update cow movement based on boids algorithm.
         """
+        # Publish status message
         msg = String()
-        msg.data = 'Simulation running - Two Cows'
+        msg.data = 'Boids simulation running with 12 cows'
         self.publisher_.publish(msg)
-        self.get_logger().info('Status: %s' % msg.data)
         
-        # Move both cows independently
-        self.move_cow1()
-        self.move_cow2()
-        self.move_cow3()
-        self.move_cow4()
-        self.move_cow5()
-        self.move_cow6()
-        self.move_cow7()
-        self.move_cow8()
-        self.move_cow9()
-        self.move_cow10()
-        self.move_cow11()
-        self.move_cow12()
+        # Calculate new velocities for each cow using boids algorithm
+        for cow_id in self.estimated_positions:
+            # Calculate steering forces
+            separation = self.calculate_separation(cow_id)
+            alignment = self.calculate_alignment(cow_id)
+            cohesion = self.calculate_cohesion(cow_id)
+            
+            # Apply steering forces to velocity
+            new_velocity = self.estimated_velocities[cow_id] + separation + alignment + cohesion
+            
+            # Add some randomness
+            new_velocity += np.array([
+                random.uniform(-1.0, 1.0) * self.random_factor,
+                random.uniform(-1.0, 1.0) * self.random_factor,
+                0.0
+            ])
+            
+            # Limit speed
+            speed = np.linalg.norm(new_velocity)
+            if speed > self.max_speed:
+                new_velocity = (new_velocity / speed) * self.max_speed
+                
+            # Apply the new velocity
+            self.apply_velocity(cow_id, new_velocity)
+            
+            # Update estimated position based on velocity command
+            self.estimated_velocities[cow_id] = new_velocity
+            self.estimated_positions[cow_id] += new_velocity * self.update_interval
 
-    def move_cow1(self):
+    def calculate_separation(self, cow_id):
         """
-        Send a velocity command to move cow1.
+        Calculate separation force to avoid crowding.
         """
-        vel_msg = Twist()
-        # Ensure all velocity components are properly initialized as floats
-        vel_msg.linear.x = random.uniform(-1.0, 1.0)
-        vel_msg.linear.y = random.uniform(-1.0, 1.0)
-        vel_msg.linear.z = 0.0
-        vel_msg.angular.x = 0.0
-        vel_msg.angular.y = 0.0
-        vel_msg.angular.z = 2.0  # Angular velocity (turning)
-        self.cow1_vel_publisher.publish(vel_msg)
-        self.get_logger().info('Sent velocity command to cow1')
-    
-    def move_cow2(self):
-        """
-        Send a velocity command to move cow2.
-        """
-        vel_msg = Twist()
-        # Different movement pattern for the second cow
-        vel_msg.linear.x = random.uniform(-0.8, 0.8)
-        vel_msg.linear.y = random.uniform(-0.8, 0.8)
-        vel_msg.linear.z = 0.0
-        vel_msg.angular.x = 0.0
-        vel_msg.angular.y = 0.0
-        vel_msg.angular.z = -1.5  # Different angular velocity for variety
-        self.cow2_vel_publisher.publish(vel_msg)
-        self.get_logger().info('Sent velocity command to cow2')
+        separation_force = np.zeros(3)
+        neighbors = 0
+        
+        for other_id, position in self.estimated_positions.items():
+            if other_id != cow_id:
+                distance_vector = self.estimated_positions[cow_id] - position
+                distance = np.linalg.norm(distance_vector)
+                
+                if 0 < distance < self.separation_distance:
+                    # Normalize and weight by distance
+                    repulsion = distance_vector / distance
+                    repulsion = repulsion / distance  # Closer cows have stronger effect
+                    separation_force += repulsion
+                    neighbors += 1
+        
+        if neighbors > 0:
+            separation_force /= neighbors
+            separation_force *= self.separation_factor
+            
+        return separation_force
 
-    def move_cow3(self):
+    def calculate_alignment(self, cow_id):
         """
-        Send a velocity command to move cow2.
+        Calculate alignment force to match velocity with neighbors.
         """
-        vel_msg = Twist()
-        # Different movement pattern for the second cow
-        vel_msg.linear.x = random.uniform(-0.8, 0.8)
-        vel_msg.linear.y = random.uniform(-0.8, 0.8)
-        vel_msg.linear.z = 0.0
-        vel_msg.angular.x = 0.0
-        vel_msg.angular.y = 0.0
-        vel_msg.angular.z = -1.5  # Different angular velocity for variety
-        self.cow3_vel_publisher.publish(vel_msg)
-        self.get_logger().info('Sent velocity command to cow3')
+        alignment_force = np.zeros(3)
+        neighbors = 0
+        
+        for other_id, velocity in self.estimated_velocities.items():
+            if other_id != cow_id:
+                distance = np.linalg.norm(
+                    self.estimated_positions[cow_id] - self.estimated_positions[other_id])
+                
+                if distance < self.perception_radius:
+                    alignment_force += velocity
+                    neighbors += 1
+        
+        if neighbors > 0:
+            alignment_force /= neighbors
+            alignment_force -= self.estimated_velocities[cow_id]
+            alignment_force *= self.alignment_factor
+            
+        return alignment_force
 
-    def move_cow4(self):
+    def calculate_cohesion(self, cow_id):
         """
-        Send a velocity command to move cow2.
+        Calculate cohesion force to move toward center of mass.
         """
-        vel_msg = Twist()
-        # Different movement pattern for the second cow
-        vel_msg.linear.x = random.uniform(-0.8, 0.8)
-        vel_msg.linear.y = random.uniform(-0.8, 0.8)
-        vel_msg.linear.z = 0.0
-        vel_msg.angular.x = 0.0
-        vel_msg.angular.y = 0.0
-        vel_msg.angular.z = -1.5  # Different angular velocity for variety
-        self.cow4_vel_publisher.publish(vel_msg)
-        self.get_logger().info('Sent velocity command to cow4')
+        center_of_mass = np.zeros(3)
+        neighbors = 0
+        
+        for other_id, position in self.estimated_positions.items():
+            if other_id != cow_id:
+                distance = np.linalg.norm(
+                    self.estimated_positions[cow_id] - position)
+                
+                if distance < self.perception_radius:
+                    center_of_mass += position
+                    neighbors += 1
+        
+        cohesion_force = np.zeros(3)
+        if neighbors > 0:
+            center_of_mass /= neighbors
+            cohesion_force = center_of_mass - self.estimated_positions[cow_id]
+            cohesion_force *= self.cohesion_factor
+            
+        return cohesion_force
 
-    def move_cow5(self):
+    def apply_velocity(self, cow_id, velocity):
         """
-        Send a velocity command to move cow2.
-        """
-        vel_msg = Twist()
-        # Different movement pattern for the second cow
-        vel_msg.linear.x = random.uniform(-0.8, 0.8)
-        vel_msg.linear.y = random.uniform(-0.8, 0.8)
-        vel_msg.linear.z = 0.0
-        vel_msg.angular.x = 0.0
-        vel_msg.angular.y = 0.0
-        vel_msg.angular.z = -1.5  # Different angular velocity for variety
-        self.cow5_vel_publisher.publish(vel_msg)
-        self.get_logger().info('Sent velocity command to cow5')
-
-    def move_cow6(self):
-        """
-        Send a velocity command to move cow2.
+        Send velocity command to the cow.
         """
         vel_msg = Twist()
-        # Different movement pattern for the second cow
-        vel_msg.linear.x = random.uniform(-0.8, 0.8)
-        vel_msg.linear.y = random.uniform(-0.8, 0.8)
+        vel_msg.linear.x = float(velocity[0])
+        vel_msg.linear.y = float(velocity[1])
         vel_msg.linear.z = 0.0
+        
+        # Calculate angular velocity (Z-axis rotation)
+        if abs(velocity[0]) > 0.01 or abs(velocity[1]) > 0.01:
+            # Calculate desired heading
+            desired_heading = math.atan2(velocity[1], velocity[0])
+            
+            # For simplicity, we're using a constant angular velocity
+            vel_msg.angular.z = self.max_angular_speed if random.random() > 0.5 else -self.max_angular_speed
+            vel_msg.angular.z *= 0.5
+        else:
+            vel_msg.angular.z = 0.0
+            
         vel_msg.angular.x = 0.0
         vel_msg.angular.y = 0.0
-        vel_msg.angular.z = -1.5  # Different angular velocity for variety
-        self.cow6_vel_publisher.publish(vel_msg)
-        self.get_logger().info('Sent velocity command to cow6')
-
-
-    def move_cow7(self):
-        """
-        Send a velocity command to move cow1.
-        """
-        vel_msg = Twist()
-        # Ensure all velocity components are properly initialized as floats
-        vel_msg.linear.x = random.uniform(-1.0, 1.0)
-        vel_msg.linear.y = random.uniform(-1.0, 1.0)
-        vel_msg.linear.z = 0.0
-        vel_msg.angular.x = 0.0
-        vel_msg.angular.y = 0.0
-        vel_msg.angular.z = 2.0  # Angular velocity (turning)
-        self.cow7_vel_publisher.publish(vel_msg)
-        self.get_logger().info('Sent velocity command to cow7')
-    
-    def move_cow8(self):
-        """
-        Send a velocity command to move cow2.
-        """
-        vel_msg = Twist()
-        # Different movement pattern for the second cow
-        vel_msg.linear.x = random.uniform(-0.8, 0.8)
-        vel_msg.linear.y = random.uniform(-0.8, 0.8)
-        vel_msg.linear.z = 0.0
-        vel_msg.angular.x = 0.0
-        vel_msg.angular.y = 0.0
-        vel_msg.angular.z = -1.5  # Different angular velocity for variety
-        self.cow8_vel_publisher.publish(vel_msg)
-        self.get_logger().info('Sent velocity command to cow8')
-
-    def move_cow9(self):
-        """
-        Send a velocity command to move cow2.
-        """
-        vel_msg = Twist()
-        # Different movement pattern for the second cow
-        vel_msg.linear.x = random.uniform(-0.8, 0.8)
-        vel_msg.linear.y = random.uniform(-0.8, 0.8)
-        vel_msg.linear.z = 0.0
-        vel_msg.angular.x = 0.0
-        vel_msg.angular.y = 0.0
-        vel_msg.angular.z = -1.5  # Different angular velocity for variety
-        self.cow9_vel_publisher.publish(vel_msg)
-        self.get_logger().info('Sent velocity command to cow9')
-
-    def move_cow10(self):
-        """
-        Send a velocity command to move cow2.
-        """
-        vel_msg = Twist()
-        # Different movement pattern for the second cow
-        vel_msg.linear.x = random.uniform(-0.8, 0.8)
-        vel_msg.linear.y = random.uniform(-0.8, 0.8)
-        vel_msg.linear.z = 0.0
-        vel_msg.angular.x = 0.0
-        vel_msg.angular.y = 0.0
-        vel_msg.angular.z = -1.5  # Different angular velocity for variety
-        self.cow10_vel_publisher.publish(vel_msg)
-        self.get_logger().info('Sent velocity command to cow10')
-
-    def move_cow11(self):
-        """
-        Send a velocity command to move cow2.
-        """
-        vel_msg = Twist()
-        # Different movement pattern for the second cow
-        vel_msg.linear.x = random.uniform(-0.8, 0.8)
-        vel_msg.linear.y = random.uniform(-0.8, 0.8)
-        vel_msg.linear.z = 0.0
-        vel_msg.angular.x = 0.0
-        vel_msg.angular.y = 0.0
-        vel_msg.angular.z = -1.5  # Different angular velocity for variety
-        self.cow11_vel_publisher.publish(vel_msg)
-        self.get_logger().info('Sent velocity command to cow11')
-
-    def move_cow12(self):
-        """
-        Send a velocity command to move cow2.
-        """
-        vel_msg = Twist()
-        # Different movement pattern for the second cow
-        vel_msg.linear.x = random.uniform(-0.8, 0.8)
-        vel_msg.linear.y = random.uniform(-0.8, 0.8)
-        vel_msg.linear.z = 0.0
-        vel_msg.angular.x = 0.0
-        vel_msg.angular.y = 0.0
-        vel_msg.angular.z = -1.5  # Different angular velocity for variety
-        self.cow12_vel_publisher.publish(vel_msg)
-        self.get_logger().info('Sent velocity command to cow12')
+        
+        # Publish velocity command
+        self.cow_vel_publishers[cow_id].publish(vel_msg)
 
 def main(args=None):
     rclpy.init(args=args)
-    node = CowDroneController()
+    node = CowBoidsControllerSimple()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:

@@ -93,6 +93,14 @@
             name="ignition::gazebo::systems::VelocityControl">
         <topic>/cow1/cmd_vel</topic>
       </plugin>
+
+      <plugin filename="libignition-gazebo-odometry-publisher-system.so"
+            name="ignition::gazebo::systems::OdometryPublisher">
+        <odom_frame>cow1/odom</odom_frame>
+        <robot_base_frame>cow1</robot_base_frame>
+        <odom_publish_frequency>10</odom_publish_frequency>
+        <odom_topic>/cow1/odom</odom_topic>
+      </plugin>
     </model>
 
     <!-- Cow (Sphere) -->
@@ -136,6 +144,14 @@
       <plugin filename="libignition-gazebo-velocity-control-system.so" 
             name="ignition::gazebo::systems::VelocityControl">
         <topic>/cow2/cmd_vel</topic>
+      </plugin>
+
+      <plugin filename="libignition-gazebo-odometry-publisher-system.so"
+            name="ignition::gazebo::systems::OdometryPublisher">
+        <odom_frame>cow2/odom</odom_frame>
+        <robot_base_frame>cow2</robot_base_frame>
+        <odom_publish_frequency>10</odom_publish_frequency>
+        <odom_topic>/cow2/odom</odom_topic>
       </plugin>
     </model>
 
@@ -182,6 +198,13 @@
             name="ignition::gazebo::systems::VelocityControl">
         <topic>/cow3/cmd_vel</topic>
       </plugin>
+      <plugin filename="libignition-gazebo-odometry-publisher-system.so"
+            name="ignition::gazebo::systems::OdometryPublisher">
+        <odom_frame>cow3/odom</odom_frame>
+        <robot_base_frame>cow3</robot_base_frame>
+        <odom_publish_frequency>10</odom_publish_frequency>
+        <odom_topic>/cow3/odom</odom_topic>
+      </plugin>
     </model>
 
 
@@ -226,6 +249,13 @@
       <plugin filename="libignition-gazebo-velocity-control-system.so" 
             name="ignition::gazebo::systems::VelocityControl">
         <topic>/cow4/cmd_vel</topic>
+      </plugin>
+      <plugin filename="libignition-gazebo-odometry-publisher-system.so"
+            name="ignition::gazebo::systems::OdometryPublisher">
+        <odom_frame>cow4/odom</odom_frame>
+        <robot_base_frame>cow4</robot_base_frame>
+        <odom_publish_frequency>10</odom_publish_frequency>
+        <odom_topic>/cow4/odom</odom_topic>
       </plugin>
     </model>
 
@@ -272,6 +302,14 @@
             name="ignition::gazebo::systems::VelocityControl">
         <topic>/cow5/cmd_vel</topic>
       </plugin>
+
+      <plugin filename="libignition-gazebo-odometry-publisher-system.so"
+            name="ignition::gazebo::systems::OdometryPublisher">
+        <odom_frame>cow5/odom</odom_frame>
+        <robot_base_frame>cow5</robot_base_frame>
+        <odom_publish_frequency>10</odom_publish_frequency>
+        <odom_topic>/cow5/odom</odom_topic>
+      </plugin>
     </model>
 
 
@@ -317,6 +355,13 @@
       <plugin filename="libignition-gazebo-velocity-control-system.so" 
             name="ignition::gazebo::systems::VelocityControl">
         <topic>/cow6/cmd_vel</topic>
+      </plugin>
+      <plugin filename="libignition-gazebo-odometry-publisher-system.so"
+            name="ignition::gazebo::systems::OdometryPublisher">
+        <odom_frame>cow6/odom</odom_frame>
+        <robot_base_frame>cow6</robot_base_frame>
+        <odom_publish_frequency>10</odom_publish_frequency>
+        <odom_topic>/cow6/odom</odom_topic>
       </plugin>
     </model>
 
@@ -365,6 +410,14 @@
             name="ignition::gazebo::systems::VelocityControl">
         <topic>/cow7/cmd_vel</topic>
       </plugin>
+
+      <plugin filename="libignition-gazebo-odometry-publisher-system.so"
+            name="ignition::gazebo::systems::OdometryPublisher">
+        <odom_frame>cow7/odom</odom_frame>
+        <robot_base_frame>cow7</robot_base_frame>
+        <odom_publish_frequency>10</odom_publish_frequency>
+        <odom_topic>/cow7/odom</odom_topic>
+      </plugin>
     </model>
 
     <!-- Cow (Sphere) -->
@@ -408,6 +461,14 @@
       <plugin filename="libignition-gazebo-velocity-control-system.so" 
             name="ignition::gazebo::systems::VelocityControl">
         <topic>/cow8/cmd_vel</topic>
+      </plugin>
+
+      <plugin filename="libignition-gazebo-odometry-publisher-system.so"
+            name="ignition::gazebo::systems::OdometryPublisher">
+        <odom_frame>cow8/odom</odom_frame>
+        <robot_base_frame>cow8</robot_base_frame>
+        <odom_publish_frequency>10</odom_publish_frequency>
+        <odom_topic>/cow8/odom</odom_topic>
       </plugin>
     </model>
 
@@ -454,6 +515,14 @@
             name="ignition::gazebo::systems::VelocityControl">
         <topic>/cow9/cmd_vel</topic>
       </plugin>
+
+      <plugin filename="libignition-gazebo-odometry-publisher-system.so"
+            name="ignition::gazebo::systems::OdometryPublisher">
+        <odom_frame>cow9/odom</odom_frame>
+        <robot_base_frame>cow9</robot_base_frame>
+        <odom_publish_frequency>10</odom_publish_frequency>
+        <odom_topic>/cow9/odom</odom_topic>
+      </plugin>
     </model>
 
 
@@ -498,6 +567,14 @@
       <plugin filename="libignition-gazebo-velocity-control-system.so" 
             name="ignition::gazebo::systems::VelocityControl">
         <topic>/cow10/cmd_vel</topic>
+      </plugin>
+
+      <plugin filename="libignition-gazebo-odometry-publisher-system.so"
+            name="ignition::gazebo::systems::OdometryPublisher">
+        <odom_frame>cow10/odom</odom_frame>
+        <robot_base_frame>cow10</robot_base_frame>
+        <odom_publish_frequency>10</odom_publish_frequency>
+        <odom_topic>/cow10/odom</odom_topic>
       </plugin>
     </model>
 
@@ -544,6 +621,14 @@
             name="ignition::gazebo::systems::VelocityControl">
         <topic>/cow11/cmd_vel</topic>
       </plugin>
+
+      <plugin filename="libignition-gazebo-odometry-publisher-system.so"
+            name="ignition::gazebo::systems::OdometryPublisher">
+        <odom_frame>cow11/odom</odom_frame>
+        <robot_base_frame>cow11</robot_base_frame>
+        <odom_publish_frequency>10</odom_publish_frequency>
+        <odom_topic>/cow11/odom</odom_topic>
+      </plugin>
     </model>
 
 
@@ -589,6 +674,14 @@
       <plugin filename="libignition-gazebo-velocity-control-system.so" 
             name="ignition::gazebo::systems::VelocityControl">
         <topic>/cow12/cmd_vel</topic>
+      </plugin>
+
+      <plugin filename="libignition-gazebo-odometry-publisher-system.so"
+            name="ignition::gazebo::systems::OdometryPublisher">
+        <odom_frame>cow12/odom</odom_frame>
+        <robot_base_frame>cow12</robot_base_frame>
+        <odom_publish_frequency>10</odom_publish_frequency>
+        <odom_topic>/cow12/odom</odom_topic>
       </plugin>
     </model>
     

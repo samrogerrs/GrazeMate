@@ -15,6 +15,19 @@ def generate_launch_description():
     # Launch arguments
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
     
+    # Create bridge arguments for all cows
+    bridge_args = [
+        '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock'
+    ]
+    
+    # Add cmd_vel bridges
+    for i in range(1, 13):
+        bridge_args.append(f'/cow{i}/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist')
+    
+    # Add odometry bridges
+    for i in range(1, 13):
+        bridge_args.append(f'/cow{i}/odom@nav_msgs/msg/Odometry[ignition.msgs.Odometry')
+    
     return LaunchDescription([
         # Declare launch arguments
         DeclareLaunchArgument(
@@ -29,38 +42,12 @@ def generate_launch_description():
             ],
             output='screen'),
             
-        # Updated bridge to handle both cow topics
+        # Bridge for cow topics
         Node(
             package='ros_gz_bridge',
             executable='parameter_bridge',
             name='ros_gz_bridge',
-            arguments=[
-                '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
-
-                '/cow1/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
-
-                '/cow2/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
-
-                '/cow3/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
-
-                '/cow4/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
-
-                '/cow5/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
-
-                '/cow6/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
-
-                '/cow7/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
-
-                '/cow8/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
-
-                '/cow9/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
-
-                '/cow10/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
-
-                '/cow11/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
-
-                '/cow12/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist'
-            ],
+            arguments=bridge_args,
             output='screen'
         ),
         
