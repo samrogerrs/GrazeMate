@@ -1,0 +1,26 @@
+[0.529s] Invoking command in '/home/sam/GrazeMate/new_sim_ws/src/my_cow_drone_sim': PYTHONPATH=/home/sam/GrazeMate/new_sim_ws/build/my_cow_drone_sim/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/sam/GrazeMate/new_sim_ws/install/my_cow_drone_sim/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/my_cow_drone_sim build --build-base /home/sam/GrazeMate/new_sim_ws/build/my_cow_drone_sim/build install --record /home/sam/GrazeMate/new_sim_ws/build/my_cow_drone_sim/install.log --single-version-externally-managed install_data
+[0.726s] running egg_info
+[0.726s] writing ../../build/my_cow_drone_sim/my_cow_drone_sim.egg-info/PKG-INFO
+[0.726s] writing dependency_links to ../../build/my_cow_drone_sim/my_cow_drone_sim.egg-info/dependency_links.txt
+[0.726s] writing entry points to ../../build/my_cow_drone_sim/my_cow_drone_sim.egg-info/entry_points.txt
+[0.727s] writing requirements to ../../build/my_cow_drone_sim/my_cow_drone_sim.egg-info/requires.txt
+[0.727s] writing top-level names to ../../build/my_cow_drone_sim/my_cow_drone_sim.egg-info/top_level.txt
+[0.728s] reading manifest file '../../build/my_cow_drone_sim/my_cow_drone_sim.egg-info/SOURCES.txt'
+[0.729s] writing manifest file '../../build/my_cow_drone_sim/my_cow_drone_sim.egg-info/SOURCES.txt'
+[0.729s] running build
+[0.729s] running build_py
+[0.729s] copying my_cow_drone_sim/wrangler_node.py -> /home/sam/GrazeMate/new_sim_ws/build/my_cow_drone_sim/build/lib/my_cow_drone_sim
+[0.729s] running install
+[0.729s] running install_lib
+[0.730s] copying /home/sam/GrazeMate/new_sim_ws/build/my_cow_drone_sim/build/lib/my_cow_drone_sim/wrangler_node.py -> /home/sam/GrazeMate/new_sim_ws/install/my_cow_drone_sim/lib/python3.10/site-packages/my_cow_drone_sim
+[0.730s] byte-compiling /home/sam/GrazeMate/new_sim_ws/install/my_cow_drone_sim/lib/python3.10/site-packages/my_cow_drone_sim/wrangler_node.py to wrangler_node.cpython-310.pyc
+[0.732s] running install_data
+[0.732s] running install_egg_info
+[0.733s] removing '/home/sam/GrazeMate/new_sim_ws/install/my_cow_drone_sim/lib/python3.10/site-packages/my_cow_drone_sim-0.0.1-py3.10.egg-info' (and everything under it)
+[0.733s] Copying ../../build/my_cow_drone_sim/my_cow_drone_sim.egg-info to /home/sam/GrazeMate/new_sim_ws/install/my_cow_drone_sim/lib/python3.10/site-packages/my_cow_drone_sim-0.0.1-py3.10.egg-info
+[0.734s] running install_scripts
+[0.749s] Installing cattle_visualizer_node script to /home/sam/GrazeMate/new_sim_ws/install/my_cow_drone_sim/lib/my_cow_drone_sim
+[0.749s] Installing controller_node script to /home/sam/GrazeMate/new_sim_ws/install/my_cow_drone_sim/lib/my_cow_drone_sim
+[0.749s] Installing wrangler_node script to /home/sam/GrazeMate/new_sim_ws/install/my_cow_drone_sim/lib/my_cow_drone_sim
+[0.749s] writing list of installed files to '/home/sam/GrazeMate/new_sim_ws/build/my_cow_drone_sim/install.log'
+[0.767s] Invoked command in '/home/sam/GrazeMate/new_sim_ws/src/my_cow_drone_sim' returned '0': PYTHONPATH=/home/sam/GrazeMate/new_sim_ws/build/my_cow_drone_sim/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/sam/GrazeMate/new_sim_ws/install/my_cow_drone_sim/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../../build/my_cow_drone_sim build --build-base /home/sam/GrazeMate/new_sim_ws/build/my_cow_drone_sim/build install --record /home/sam/GrazeMate/new_sim_ws/build/my_cow_drone_sim/install.log --single-version-externally-managed install_data

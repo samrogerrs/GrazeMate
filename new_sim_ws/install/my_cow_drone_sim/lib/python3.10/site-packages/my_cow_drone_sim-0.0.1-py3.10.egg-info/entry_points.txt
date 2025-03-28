@@ -1,0 +1,5 @@
+[console_scripts]
+cattle_visualizer_node = my_cow_drone_sim.visualiser:main
+controller_node = my_cow_drone_sim.controller_node:main
+wrangler_node = my_cow_drone_sim.wrangler_node:main
+
