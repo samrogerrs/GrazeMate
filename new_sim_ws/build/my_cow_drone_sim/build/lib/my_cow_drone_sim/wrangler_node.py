@@ -64,14 +64,13 @@ class WranglerNode(Node):
         
         # Herding parameters
         self.goal_position = np.array([7.0, 7.0, 0.0])  # Goal position at (7,7)
-        self.speed = 1.5  # Drone speed in m/s
+        self.speed = 3  # Drone speed in m/s
         
         # Altitude control parameters
         self.engagement_altitude = 0.5  # Height when actively herding cattle
-        self.transit_altitude = 3.0  # Height when moving to position without engaging
+        self.transit_altitude = 3.5  # Height when moving to position without engaging
         self.current_target_altitude = self.transit_altitude  # Default to transit altitude
-        self.altitude_transition_rate = 1.0  # Rate of altitude change (m/s)
-        self.altitude_control_p_gain = 2.0  # Proportional gain for altitude control
+        self.altitude_transition_rate = 2.0  # Rate of altitude change (m/s)
         
         # Engagement parameters
         self.engagement_distance = 4.0  # Distance threshold to consider engaging with cattle
@@ -99,9 +98,6 @@ class WranglerNode(Node):
         # Watchdog timer to detect if the drone is stuck
         self.watchdog_timer = self.create_timer(5.0, self.watchdog_callback)
         self.last_position = np.array([0.0, 0.0, 0.0])
-        
-        # Debug variables
-        self.last_log_time = 0
         
         self.get_logger().info('Path Following Wrangler node initialized')
     
@@ -161,8 +157,7 @@ class WranglerNode(Node):
         new_push_positions = []
         
         for marker in msg.markers:
-            # Updated to use cluster_centroid instead of push_position
-            if (marker.ns == "cluster_text" or marker.ns == "optimal_path") and marker.type == 9:  # TEXT_VIEW_FACING type
+            if marker.ns == "push_position" and marker.type == 1:  # SPHERE type
                 # Extract position
                 pos = marker.pose.position
                 push_pos = np.array([pos.x, pos.y, pos.z])
@@ -239,83 +234,59 @@ class WranglerNode(Node):
                 min_distance = distance
                 closest_cattle = (cattle_id, cattle_pos)
         
-        return closest_cattle, min_distance
+        return closest_cattle
+    
     
     def set_operation_mode(self):
         """
-        Determine the current operation mode based on position and proximity to cattle
+        Simplified function to determine the current operation mode based on position 
+        and proximity to cattle
         """
-        current_time = time.time()
+        # Default to transit mode
+        self.operation_mode = "TRANSIT"
+        self.current_target_altitude = self.transit_altitude
         
+        # If no path available yet, stay in transit mode
         if not self.path_waypoints:
-            # No path available yet
-            self.operation_mode = "TRANSIT"
-            self.current_target_altitude = self.transit_altitude
             return
         
-        # Check if we're near the final waypoint (goal)
-        if self.current_waypoint_idx >= len(self.path_waypoints) - 1:
-            final_waypoint = self.path_waypoints[-1]
-            distance_to_final = np.linalg.norm(self.drone_position[:2] - final_waypoint[:2])
-            
-            if distance_to_final < self.waypoint_reached_threshold:
-                # We've reached the goal, maintain position
-                self.operation_mode = "TRANSIT"
-                self.current_target_altitude = self.transit_altitude
-                return
+        # Check for any cattle nearby (within engagement distance)
+        nearest_cattle = None
+        min_distance = float('inf')
         
-        # Find the closest cattle regardless of push target
-        all_closest_cattle, min_distance = self.get_closest_cattle(self.drone_position, max_distance=10.0)
+        for cattle_id, cattle_pos in self.cattle_positions.items():
+            distance = np.linalg.norm(self.drone_position[:2] - cattle_pos[:2])
+            if distance < min_distance:
+                min_distance = distance
+                nearest_cattle = (cattle_id, cattle_pos)
         
-        # If there are cattle nearby, consider engaging
-        if all_closest_cattle is not None and min_distance < self.engagement_distance:
-            cattle_id, cattle_pos = all_closest_cattle
-            # Calculate vector from cattle to goal
-            cattle_to_goal = self.goal_position[:2] - cattle_pos[:2]
-            distance_to_goal = np.linalg.norm(cattle_to_goal)
+        # If we're close to cattle, determine if we should be pushing
+        if nearest_cattle and min_distance < self.engagement_distance:
+            cattle_id, cattle_pos = nearest_cattle
             
-            if distance_to_goal > 1.5:  # Only push if not already close to goal
+            # Check if cattle needs to be pushed (not already at goal)
+            cattle_to_goal = np.linalg.norm(self.goal_position[:2] - cattle_pos[:2])
+            
+            if cattle_to_goal > 2.0:  # Only push if cattle isn't already near goal
+                # Simplified engagement logic - if we're close to cattle, we're pushing
                 self.operation_mode = "PUSHING"
                 self.current_target_altitude = self.engagement_altitude
                 
-                # Debug logging
-                if current_time - self.last_log_time > 2.0:
-                    self.get_logger().info(f'PUSHING mode: Found cattle {cattle_id} at distance {min_distance:.2f}m')
-                    self.last_log_time = current_time
+                # Update current push target to be this cattle
+                self.current_push_target = cattle_pos
+                
+                # Calculate push direction (toward goal)
+                cattle_to_goal_vec = self.goal_position[:2] - cattle_pos[:2]
+                if np.linalg.norm(cattle_to_goal_vec) > 0:
+                    self.current_push_direction = cattle_to_goal_vec / np.linalg.norm(cattle_to_goal_vec)
+                
+                # Log that we're pushing
+                self.get_logger().info(f'PUSHING cattle {cattle_id}, distance to goal: {cattle_to_goal:.2f}m')
                 return
         
-        # If we have a current push target, check if we're close to it
-        if self.current_push_target is not None:
-            distance_to_target = np.linalg.norm(self.drone_position[:2] - self.current_push_target[:2])
-            
-            if distance_to_target < self.waypoint_reached_threshold * 2.0:  # More generous threshold
-                # We're at a push position, check for cattle nearby
-                closest_cattle, min_distance = self.get_closest_cattle(self.current_push_target, max_distance=5.0)
-                
-                if closest_cattle is not None:
-                    cattle_id, cattle_pos = closest_cattle
-                    # Calculate vector from cattle to goal
-                    cattle_to_goal = self.goal_position[:2] - cattle_pos[:2]
-                    distance_to_goal = np.linalg.norm(cattle_to_goal)
-                    
-                    if distance_to_goal > 1.5:  # Only push if not already close to goal
-                        self.operation_mode = "PUSHING"
-                        self.current_target_altitude = self.engagement_altitude
-                        
-                        # Debug logging
-                        if current_time - self.last_log_time > 2.0:
-                            self.get_logger().info(f'PUSHING mode: At push target with cattle {cattle_id} nearby')
-                            self.last_log_time = current_time
-                        return
-        
-        # Default to transit/positioning mode
-        # Debug logging for mode changes
-        if self.operation_mode != "TRANSIT" and current_time - self.last_log_time > 2.0:
-            self.get_logger().info('Switching to TRANSIT mode')
-            self.last_log_time = current_time
-            
-        self.operation_mode = "TRANSIT"
-        self.current_target_altitude = self.transit_altitude
+        # If we get here, we're not pushing - stay in transit mode following waypoints
+        # This means we'll follow the path at a higher altitude
+
     
     def get_next_waypoint(self):
         """
@@ -340,15 +311,19 @@ class WranglerNode(Node):
                 # If this is a push position waypoint, update the push target
                 if self.push_positions and current_idx < len(self.push_positions):
                     self.current_push_target = self.push_positions[current_idx]
-                    # (Would need to update push direction here if available)
+                    
+                    # We'll update the push direction dynamically when we're actually pushing
+                    # This is just to initialize the direction
+                    self.current_push_direction = np.array([1.0, 0.0])  # Default direction
         
         # Check if we need lookahead
+        
         if current_idx < len(self.path_waypoints) - 1:
             current_waypoint = self.path_waypoints[current_idx]
             next_waypoint = self.path_waypoints[current_idx + 1]
             
             # Calculate distance to current waypoint
-            distance_to_current = np.linalg.norm(self.drone_position[:2] - current_waypoint[:2])
+            distance_to_current = np.linalg.norm(self.drone_position[:2] + current_waypoint[:2])
             
             # If we're close enough to current waypoint, start moving toward next one
             if distance_to_current < self.lookahead_distance:
@@ -366,13 +341,18 @@ class WranglerNode(Node):
             
         # Fallback to goal position if we have no valid waypoints
         return self.goal_position[:2]
-    
+
     def calculate_push_position(self, cattle_pos):
         """
-        Calculate position for pushing cattle towards goal with oscillation
+        Calculate position for pushing cattle towards goal, ensuring drone approaches
+        from the correct direction (2.75m behind cattle in push direction)
         """
-        if self.current_push_direction is None:
-            # Calculate push direction based on cattle-to-goal vector
+        # If we have a current_push_direction from markers, use that
+        if self.current_push_direction is not None:
+            # This is the direction we want cattle to move (toward goal)
+            push_direction = self.current_push_direction
+        else:
+            # Calculate push direction based on cattle-to-goal vector as fallback
             cattle_to_goal = self.goal_position[:2] - cattle_pos[:2]
             distance_to_goal = np.linalg.norm(cattle_to_goal)
             
@@ -380,25 +360,27 @@ class WranglerNode(Node):
                 push_direction = cattle_to_goal / distance_to_goal
             else:
                 push_direction = np.array([1.0, 0.0])  # Default direction
-        else:
-            push_direction = self.current_push_direction
         
-        # Perpendicular vector for oscillation
+        # Position behind cattle - exactly 2.75m behind in the push direction
+        # Use NEGATIVE push_direction to go in the opposite direction from the goal
+        behind_distance = 1.00  # meters, as specified
+        push_position = cattle_pos[:2] - (push_direction * behind_distance)
+        
+        # Perpendicular vector for oscillation (if needed)
         perpendicular = np.array([-push_direction[1], push_direction[0]])
         
-        # Apply oscillation based on time
-        amplitude = 1.5  # meters
+        # Apply oscillation based on time (reduced amplitude)
+        amplitude = 0.5  # meters (reduced from 1.5)
         frequency = 0.3  # Hz
         
         current_time = time.time()
         oscillation = amplitude * math.sin(2 * math.pi * frequency * (current_time - self.start_time))
         
-        # Position behind cattle (relative to goal) with oscillation
-        behind_distance = 2.5  # meters
-        push_position = cattle_pos[:2] - (push_direction * behind_distance) + (perpendicular * oscillation)
+        # Add small perpendicular oscillation (can be disabled by setting amplitude to 0)
+        push_position = push_position + (perpendicular * oscillation)
         
         return push_position
-    
+        
     def altitude_control(self, msg, dt):
         """
         Dynamic altitude control to maintain target height with smooth transitions
@@ -409,27 +391,25 @@ class WranglerNode(Node):
         # Calculate error
         z_error = self.current_target_altitude - current_z
         
-        # Log altitude info periodically for debugging
-        current_time = time.time()
-        if int(current_time) % 3 == 0 and int(current_time) != int(self.start_time) and abs(z_error) > 0.2:
-            self.get_logger().info(f'Altitude control: current={current_z:.2f}m, target={self.current_target_altitude:.2f}m, error={z_error:.2f}m')
-        
-        # Adjust altitude with stronger proportional control
-        desired_z_velocity = z_error * self.altitude_control_p_gain
-        
-        # Apply velocity limits for safety
-        max_velocity = 2.0  # Maximum vertical velocity (m/s)
-        msg.linear.z = np.clip(desired_z_velocity, -max_velocity, max_velocity)
+        # Adjust altitude with rate limiting for smooth transitions
+        if abs(z_error) > 0.1:  # Only adjust if error is significant
+            # Apply proportional control with rate limiting
+            desired_z_velocity = np.clip(z_error, -self.altitude_transition_rate, self.altitude_transition_rate)
+            msg.linear.z = desired_z_velocity
+        else:
+            # Maintain altitude with small corrections
+            msg.linear.z = np.clip(z_error * 2.0, -0.5, 0.5)
         
         return msg
     
+    
     def timer_callback(self):
         """
-        Main control loop for path following and herding
+        Simplified main control loop for path following and herding
         """
         # Skip if no cattle data received yet
         if not self.cattle_positions:
-            self.get_logger().info_throttle(5.0, 'No cattle data received yet.')
+            self.get_logger().info('No cattle data received yet.')
             return
         
         # Update time tracking
@@ -441,19 +421,18 @@ class WranglerNode(Node):
         self.set_operation_mode()
         
         # Calculate target position based on mode
-        if self.operation_mode == "PUSHING":
-            # Find closest cattle to drone position
-            closest_cattle, _ = self.get_closest_cattle(self.drone_position, max_distance=8.0)
+        if self.operation_mode == "PUSHING" and self.current_push_target is not None:
+            # We're in pushing mode with a valid target
+            cattle_pos = self.current_push_target
             
-            if closest_cattle:
-                cattle_id, cattle_pos = closest_cattle
-                # Calculate position for pushing with oscillation
-                target_position = self.calculate_push_position(cattle_pos[:2])
-            else:
-                # No cattle nearby, revert to following path
-                target_position = self.get_next_waypoint()
+            # Calculate ideal push position (behind cattle)
+            target_position = self.calculate_push_position(cattle_pos)
+            
+            # Log pushing information
+            if int(current_time) % 3 == 0:
+                self.get_logger().info(f'Push position: {target_position}, Drone: {self.drone_position[:2]}')
         else:
-            # Transit/positioning mode - follow path
+            # We're in transit mode, follow path
             target_position = self.get_next_waypoint()
         
         # Create velocity message
@@ -469,8 +448,14 @@ class WranglerNode(Node):
                 direction_normalized = direction_to_target / distance
                 
                 # Scale velocity based on distance (smoother approach)
-                # Use higher speed when in transit mode
-                max_speed = self.speed * (1.3 if self.operation_mode == "TRANSIT" else 1.0)
+                # Use higher speed when in transit mode, slower when positioning for push
+                if self.operation_mode == "PUSHING" and distance < 3.0:
+                    # Slow approach when getting into push position
+                    max_speed = self.speed * 0.7
+                else:
+                    # Normal transit speed
+                    max_speed = self.speed * 1.3
+                    
                 speed_factor = min(1.0, distance / 2.0)
                 velocity_scale = max_speed * speed_factor
                 
@@ -478,11 +463,10 @@ class WranglerNode(Node):
                 msg.linear.x = direction_normalized[0] * velocity_scale
                 msg.linear.y = direction_normalized[1] * velocity_scale
                 
-                # Set angular velocity to align drone with movement direction (optional)
-                # This calculates target yaw based on movement direction
+                # Set angular velocity to align drone with movement direction
                 target_yaw = math.atan2(direction_normalized[1], direction_normalized[0])
                 yaw_error = self.normalize_angle(target_yaw - self.drone_yaw)
-                msg.angular.z = np.clip(yaw_error * 1.0, -1.0, 1.0)  # Simple P controller for rotation
+                msg.angular.z = np.clip(yaw_error * 1.0, -1.0, 1.0)  # P controller for rotation
         
         # Apply altitude control
         msg = self.altitude_control(msg, dt)
@@ -491,12 +475,10 @@ class WranglerNode(Node):
         self.publisher.publish(msg)
         
         # Log status occasionally
-        if int(current_time) % 5 == 0 and int(current_time) != int(self.last_log_time):
+        if int(current_time) % 5 == 0 and int(current_time) != int(self.start_time):
             self.get_logger().info(
-                f'Mode: {self.operation_mode}, Altitude: {self.drone_position[2]:.1f}m (Target: {self.current_target_altitude:.1f}m)\n' +
-                f'Waypoint: {self.current_waypoint_idx}/{len(self.path_waypoints) if self.path_waypoints else 0}'
+                f'Mode: {self.operation_mode}, Altitude: {self.drone_position[2]:.1f}m (Target: {self.current_target_altitude:.1f}m)'
             )
-            self.last_log_time = current_time
     
     def normalize_angle(self, angle):
         """Normalize angle to [-pi, pi]"""

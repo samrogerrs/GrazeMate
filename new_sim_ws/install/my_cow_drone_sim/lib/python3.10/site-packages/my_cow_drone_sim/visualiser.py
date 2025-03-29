@@ -926,8 +926,8 @@ class EnhancedCattleVisualizerNode(Node):
             marker.pose.orientation.w = 1.0
             
             # Set scale
-            marker.scale.x = 0.7  # Cattle width
-            marker.scale.y = 1.2  # Cattle length
+            marker.scale.x = 1.0  # Cattle width
+            marker.scale.y = 1.0  # Cattle length
             marker.scale.z = 1.0  # Cattle height
             
             # Set color (brown for cattle)
