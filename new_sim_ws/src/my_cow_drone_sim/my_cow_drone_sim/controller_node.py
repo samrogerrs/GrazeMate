@@ -19,14 +19,14 @@ class CattleBoidsNode(Node):
         
         # Boids algorithm parameters
         self.separation_weight = 1.5    # Weight for separation force
-        self.alignment_weight = 1.0     # Weight for alignment force
+        self.alignment_weight = 4.0     # Weight for alignment force
         self.cohesion_weight = 0.7      # Weight for cohesion force
         self.wrangler_avoidance_weight = 3.0  # Weight for wrangler avoidance (higher = stronger fleeing)
-        self.max_speed = 1.5            # Maximum cow speed
+        self.max_speed = 0.5            # Maximum cow speed
         self.min_speed = 0.1            # Minimum cow speed
         self.perception_radius = 2.0    # How far cows can see other cows
         self.separation_radius = 1.0    # Distance to maintain between cows
-        self.wrangler_detection_radius = 4.0  # How far cows can detect wrangler
+        self.wrangler_detection_radius = 2.5  # How far cows can detect wrangler
         self.wrangler_panic_radius = 2.0  # Distance at which cows start to run faster
         self.panic_speed_multiplier = 3.0  # How much faster cows move when panicked
         

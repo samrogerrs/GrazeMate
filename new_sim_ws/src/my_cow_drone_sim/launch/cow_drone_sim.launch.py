@@ -1,9 +1,10 @@
+#!/usr/bin/env python3
+
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, IncludeLaunchDescription
+from launch.actions import ExecuteProcess, IncludeLaunchDescription, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration, FindExecutable
-from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
 import os
 from ament_index_python.packages import get_package_share_directory
@@ -33,8 +34,11 @@ def generate_launch_description():
     bridge_args.append('/drone/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist')
     bridge_args.append('/drone/odom@nav_msgs/msg/Odometry[ignition.msgs.Odometry')
     
-    # Add visualization bridges
+    # Add visualization bridges for markers, goal and paths
     bridge_args.append('/visualization/markers@visualization_msgs/msg/MarkerArray[ignition.msgs.Marker')
+    bridge_args.append('/visualization/goal@geometry_msgs/msg/PointStamped[ignition.msgs.Marker')
+    bridge_args.append('/visualization/path@nav_msgs/msg/Path[ignition.msgs.Marker')
+    bridge_args.append('/visualization/optimal_path@nav_msgs/msg/Path[ignition.msgs.Marker')
     
     # Create static transform publisher for map frame
     static_transform_publisher = Node(
@@ -74,26 +78,28 @@ def generate_launch_description():
             name='cow_drone_controller',
             parameters=[{'use_sim_time': use_sim_time}],
             output='screen'),
-            
-        # Launch wrangler node with a unique name
+        
+        # Launch enhanced cattle visualizer node
         Node(
             package='my_cow_drone_sim',
-            executable='wrangler_node',
-            name='drone_wrangler',
-            parameters=[{'use_sim_time': use_sim_time}],
-            output='screen'),
-            
-        # Static transform publisher
-        static_transform_publisher,
-        
-        Node(
-            package='my_cow_drone_sim',  # Update with your package name
             executable='cattle_visualizer_node',
-            name='cattle_visualizer_node',
+            name='cattle_visualizer',
             parameters=[{'use_sim_time': use_sim_time}],
             output='screen'
         ),
-
+        
+        # Launch path-following wrangler node
+        Node(
+            package='my_cow_drone_sim',
+            executable='wrangler_node',
+            name='wrangler',
+            parameters=[{'use_sim_time': use_sim_time}],
+            output='screen'
+        ),
+        
+        # Static transform publisher
+        static_transform_publisher,
+        
         # Launch RViz2
         Node(
             package='rviz2',
@@ -103,5 +109,4 @@ def generate_launch_description():
             parameters=[{'use_sim_time': use_sim_time}],
             output='screen'
         ),
-        
     ])
