@@ -1,0 +1,16 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+kpt_shape: [2, 3]
+flip_idx: [0, 1]
+
+nc: 1
+names: ['cow']
+
+roboflow:
+  workspace: sam-rogers-ijyed
+  project: cow-pose-estimation-fxosp-eyaov
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/sam-rogers-ijyed/cow-pose-estimation-fxosp-eyaov/dataset/1
