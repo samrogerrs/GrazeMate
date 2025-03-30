@@ -4,481 +4,337 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist, Point, PoseStamped
 from nav_msgs.msg import Odometry, Path
+from visualization_msgs.msg import MarkerArray, Marker
+from std_msgs.msg import String
 import numpy as np
 import time
 import math
-from visualization_msgs.msg import MarkerArray
+
 
 class WranglerNode(Node):
     """
-    Enhanced ROS2 node for drone movement that follows optimal paths
-    from the cattle visualizer to efficiently herd cattle towards a goal.
+    Streamlined ROS2 node for autonomous drone control to herd cattle
+    based on push positions and directions from the cattle visualizer.
     """
     
     def __init__(self):
         super().__init__('wrangler_node')
         
-        # Create publisher for velocity commands
-        self.publisher = self.create_publisher(Twist, '/drone/cmd_vel', 10)
+        # Configuration parameters
+        self.transit_height = 3.0     # Height when moving between positions (m)
+        self.pushing_height = 0.5     # Height when actively pushing (m)
+        self.max_xy_speed = 2.0       # Maximum horizontal speed (m/s)
+        self.max_z_speed = 3.0        # Maximum vertical speed (m/s)
+        self.max_angular_speed = 1.0  # Maximum rotation speed (rad/s)
+        self.position_threshold = 0.1  # Distance to consider position reached (m)
+        self.min_follow_distance = 1.0  # Minimum distance behind cattle (m)
+        self.max_follow_distance = 5.0  # Maximum distance behind cattle (m)
+        self.distance_per_cow = 0.5    # Additional distance per cow in cluster (m)
+        self.cluster_timeout = 20.0    # Maximum time to push a cluster (seconds)
+        self.goal_position = np.array([7.0, 7.0, 0.0])  # Goal position
         
+        # Publishers
+        self.velocity_pub = self.create_publisher(Twist, '/drone/cmd_vel', 10)
+        self.status_pub = self.create_publisher(String, '/wrangler/status', 10)
+        
+        # State tracking
+        self.drone_position = np.array([0.0, 0.0, 0.0])
+        self.drone_orientation = 0.0
+        self.cattle_positions = {}
+        
+        # Path planning data
+        self.push_positions = []      # List of push positions [(id, position), ...]
+        self.push_directions = []     # List of push directions [(id, direction), ...]
+        self.current_cluster_idx = 0  # Index of the current cluster being pushed
+        self.cluster_start_time = time.time()
+        self.last_status_time = time.time()
+        
+        # Setup subscribers
+        self.setup_subscribers()
+        
+        # Control timer (10Hz)
+        self.control_timer = self.create_timer(0.1, self.control_loop)
+        
+        # Watchdog timer
+        self.last_position = np.array([0.0, 0.0, 0.0])
+        self.stuck_count = 0
+        self.watchdog_timer = self.create_timer(5.0, self.watchdog)
+        
+        self.get_logger().info('Streamlined Wrangler node initialized')
+    
+    def setup_subscribers(self):
+        """Set up all subscribers"""
         # Subscribe to drone odometry
-        self.drone_sub = self.create_subscription(
+        self.create_subscription(
             Odometry,
             '/drone/odom',
             self.drone_callback,
-            10)
-            
-        # Subscribe to cattle odometry
-        self.cattle_positions = {}
-        self.cattle_velocities = {}
+            10
+        )
         
-        # You'll need to adjust this to match your cattle count
-        self.cattle_count = 12  # Assuming 12 cattle
-        for i in range(1, self.cattle_count + 1):
+        # Subscribe to cattle odometry
+        for i in range(1, 13):  # 12 cattle
             cow_id = f'cow{i}'
             self.create_subscription(
                 Odometry,
                 f'/{cow_id}/odom',
                 lambda msg, id=cow_id: self.cattle_callback(msg, id),
-                10)
+                10
+            )
         
-        # Subscribe to visualizer paths
-        self.optimal_path_sub = self.create_subscription(
-            Path,
-            '/visualization/optimal_path',
-            self.optimal_path_callback,
-            10)
-            
-        # Subscribe to marker array for push positions and directions
-        self.markers_sub = self.create_subscription(
+        # Subscribe to visualizer markers
+        self.create_subscription(
             MarkerArray,
             '/visualization/markers',
             self.markers_callback,
-            10)
+            10
+        )
         
-        # Path following parameters
-        self.path_waypoints = []
-        self.current_waypoint_idx = 0
-        self.waypoint_reached_threshold = 0.8  # meters
-        self.lookahead_distance = 1.5  # meters for path following
-        
-        # Herding parameters
-        self.goal_position = np.array([7.0, 7.0, 0.0])  # Goal position at (7,7)
-        self.speed = 3  # Drone speed in m/s
-        
-        # Altitude control parameters
-        self.engagement_altitude = 0.5  # Height when actively herding cattle
-        self.transit_altitude = 3.5  # Height when moving to position without engaging
-        self.current_target_altitude = self.transit_altitude  # Default to transit altitude
-        self.altitude_transition_rate = 2.0  # Rate of altitude change (m/s)
-        
-        # Engagement parameters
-        self.engagement_distance = 4.0  # Distance threshold to consider engaging with cattle
-        self.is_engaging = False  # Track whether currently engaging with cattle
-        self.engagement_cooldown = 0.0  # Cooldown timer to prevent rapid altitude changes
-        
-        # Push position tracking
-        self.push_positions = []  # List of push positions from markers
-        self.current_push_target = None  # Current push position being targeted
-        self.current_push_direction = None  # Direction to push from current target
-        
-        # Drone state
-        self.drone_position = np.array([0.0, 0.0, 1.0])  # Default starting position
-        self.drone_velocity = np.array([0.0, 0.0, 0.0])  # Current velocity
-        self.drone_yaw = 0.0  # Yaw orientation
-        self.start_time = time.time()
-        self.last_movement_time = time.time()  # Track last movement time
-        
-        # Mode tracking
-        self.operation_mode = "TRANSIT"  # TRANSIT, POSITIONING, PUSHING
-        
-        # Timer for control
-        self.timer = self.create_timer(0.1, self.timer_callback)
-        
-        # Watchdog timer to detect if the drone is stuck
-        self.watchdog_timer = self.create_timer(5.0, self.watchdog_callback)
-        self.last_position = np.array([0.0, 0.0, 0.0])
-        
-        self.get_logger().info('Path Following Wrangler node initialized')
+        # Subscribe to optimal path
+        self.create_subscription(
+            Path,
+            '/visualization/optimal_path',
+            self.path_callback,
+            10
+        )
     
     def drone_callback(self, msg):
-        """
-        Update drone position and velocity from odometry
-        """
+        """Update drone position and orientation from odometry"""
+        # Update position
         pos = msg.pose.pose.position
-        vel = msg.twist.twist.linear
         self.drone_position = np.array([pos.x, pos.y, pos.z])
-        self.drone_velocity = np.array([vel.x, vel.y, vel.z])
         
-        # Extract yaw from quaternion (assuming drone only rotates around z-axis)
-        qx = msg.pose.pose.orientation.x
-        qy = msg.pose.pose.orientation.y
-        qz = msg.pose.pose.orientation.z
-        qw = msg.pose.pose.orientation.w
-        
-        # Convert quaternion to yaw
-        siny_cosp = 2.0 * (qw * qz + qx * qy)
-        cosy_cosp = 1.0 - 2.0 * (qy * qy + qz * qz)
-        self.drone_yaw = math.atan2(siny_cosp, cosy_cosp)
+        # Extract yaw from quaternion
+        quat = msg.pose.pose.orientation
+        siny_cosp = 2.0 * (quat.w * quat.z + quat.x * quat.y)
+        cosy_cosp = 1.0 - 2.0 * (quat.y * quat.y + quat.z * quat.z)
+        self.drone_orientation = math.atan2(siny_cosp, cosy_cosp)
     
     def cattle_callback(self, msg, cattle_id):
-        """
-        Update cattle positions and velocities from odometry
-        """
+        """Update cattle position"""
         pos = msg.pose.pose.position
-        vel = msg.twist.twist.linear
         self.cattle_positions[cattle_id] = np.array([pos.x, pos.y, pos.z])
-        self.cattle_velocities[cattle_id] = np.array([vel.x, vel.y, vel.z])
     
-    def optimal_path_callback(self, msg):
-        """
-        Process optimal path from visualizer
-        """
+    def markers_callback(self, msg):
+        """Process markers from the visualizer to extract push information"""
+        push_positions = []
+        push_directions = []
+        
+        # First, collect all push positions
+        for marker in msg.markers:
+            if marker.ns == "push_position" and marker.type == Marker.SPHERE:
+                pos = np.array([
+                    marker.pose.position.x,
+                    marker.pose.position.y,
+                    marker.pose.position.z
+                ])
+                push_positions.append((marker.id, pos))
+        
+        # Then collect push directions
+        for marker in msg.markers:
+            if marker.ns == "push_arrow" and marker.type == Marker.ARROW and len(marker.points) >= 2:
+                start = np.array([marker.points[0].x, marker.points[0].y])
+                end = np.array([marker.points[1].x, marker.points[1].y])
+                
+                # Calculate and normalize direction vector
+                direction = end - start
+                distance = np.linalg.norm(direction)
+                if distance > 0.001:
+                    direction = direction / distance
+                    push_directions.append((marker.id, direction))
+        
+        # Sort by ID (priority from visualizer)
+        push_positions.sort(key=lambda x: x[0])
+        push_directions.sort(key=lambda x: x[0])
+        
+        # Update only if we have valid data
+        if push_positions and push_directions:
+            self.push_positions = push_positions
+            self.push_directions = push_directions
+    
+    def path_callback(self, msg):
+        """Process the optimal path from the visualizer"""
         if not msg.poses:
             return
             
-        # Extract waypoints from path message
-        self.path_waypoints = []
+        # Extract waypoints (not currently used in streamlined implementation)
+        path = []
         for pose in msg.poses:
             pos = pose.pose.position
-            self.path_waypoints.append(np.array([pos.x, pos.y, pos.z]))
-        
-        # Reset waypoint tracking if we get a new path
-        self.current_waypoint_idx = 0
-        
-        # Log path update
-        self.get_logger().info(f'Received new path with {len(self.path_waypoints)} waypoints')
+            path.append(np.array([pos.x, pos.y, pos.z]))
     
-    def markers_callback(self, msg):
-        """
-        Process visualizer markers to extract push positions and directions
-        """
-        # Extract push positions from markers
-        new_push_positions = []
+    def publish_status(self, message):
+        """Publish status message"""
+        msg = String()
+        msg.data = message
+        self.status_pub.publish(msg)
+        self.get_logger().info(message)
+    
+    def watchdog(self):
+        """Watchdog to detect if the drone is stuck"""
+        # Check if drone has moved
+        distance = np.linalg.norm(self.drone_position[:2] - self.last_position[:2])
         
-        for marker in msg.markers:
-            if marker.ns == "push_position" and marker.type == 1:  # SPHERE type
-                # Extract position
-                pos = marker.pose.position
-                push_pos = np.array([pos.x, pos.y, pos.z])
-                
-                # Add to list with marker ID for ordering
-                new_push_positions.append((marker.id, push_pos))
-        
-        # Sort by ID (priority order from visualizer)
-        if new_push_positions:
-            new_push_positions.sort(key=lambda x: x[0])
-            self.push_positions = [pos for _, pos in new_push_positions]
+        if distance < 0.1:
+            self.stuck_count += 1
             
-            # Update current target if we don't have one yet
-            if self.current_push_target is None and self.push_positions:
-                self.current_push_target = self.push_positions[0]
-                # Look for the corresponding push arrow direction
-                self.find_push_direction_for_target(msg, 0)
-    
-    def find_push_direction_for_target(self, marker_array, target_idx):
-        """
-        Find the push direction for a specific push position target
-        """
-        for marker in marker_array.markers:
-            if marker.ns == "push_arrow" and marker.id == target_idx and marker.type == 0:  # ARROW type
-                if len(marker.points) >= 2:
-                    # Extract direction from arrow start and end points
-                    start = marker.points[0]
-                    end = marker.points[1]
-                    
-                    # Calculate direction vector
-                    direction = np.array([end.x - start.x, end.y - start.y])
-                    if np.linalg.norm(direction) > 0:
-                        direction = direction / np.linalg.norm(direction)
-                        self.current_push_direction = direction
-                        return True
-        
-        # If no direction found, use a default
-        self.current_push_direction = np.array([1.0, 0.0])  # Default direction
-        return False
-    
-    def watchdog_callback(self):
-        """
-        Check if the drone has moved in the last 5 seconds
-        """
-        if np.linalg.norm(self.drone_position[:2] - self.last_position[:2]) < 0.1:
-            self.get_logger().warn('Drone appears to be stuck! Sending new movement command.')
-            # Send a small jog command to unstick the drone
-            msg = Twist()
-            msg.linear.x = 0.5
-            msg.linear.y = 0.5
-            # Maintain target altitude
-            z_error = self.current_target_altitude - self.drone_position[2]
-            msg.linear.z = np.clip(z_error, -0.5, 0.5)
-            self.publisher.publish(msg)
-            
-            # Also advance to next waypoint if we're stuck on the current one
-            if self.path_waypoints and self.current_waypoint_idx < len(self.path_waypoints) - 1:
-                self.current_waypoint_idx += 1
-                self.get_logger().info(f'Skipping to next waypoint: {self.current_waypoint_idx}')
+            if self.stuck_count >= 3:  # Stuck for ~15 seconds
+                self.get_logger().warn('Drone appears stuck, advancing to next cluster')
+                self.advance_to_next_cluster()
+                self.stuck_count = 0
+        else:
+            # Reset counter if moving
+            self.stuck_count = 0
         
         # Update last position
         self.last_position = self.drone_position.copy()
     
-    def get_closest_cattle(self, position, max_distance=5.0):
-        """
-        Find the closest cattle to a given position within max_distance
-        """
-        closest_cattle = None
-        min_distance = float('inf')
-        
-        for cattle_id, cattle_pos in self.cattle_positions.items():
-            distance = np.linalg.norm(cattle_pos[:2] - position[:2])
-            if distance < min_distance and distance < max_distance:
-                min_distance = distance
-                closest_cattle = (cattle_id, cattle_pos)
-        
-        return closest_cattle
-    
-    
-    def set_operation_mode(self):
-        """
-        Simplified function to determine the current operation mode based on position 
-        and proximity to cattle
-        """
-        # Default to transit mode
-        self.operation_mode = "TRANSIT"
-        self.current_target_altitude = self.transit_altitude
-        
-        # If no path available yet, stay in transit mode
-        if not self.path_waypoints:
-            return
-        
-        # Check for any cattle nearby (within engagement distance)
-        nearest_cattle = None
-        min_distance = float('inf')
-        
-        for cattle_id, cattle_pos in self.cattle_positions.items():
-            distance = np.linalg.norm(self.drone_position[:2] - cattle_pos[:2])
-            if distance < min_distance:
-                min_distance = distance
-                nearest_cattle = (cattle_id, cattle_pos)
-        
-        # If we're close to cattle, determine if we should be pushing
-        if nearest_cattle and min_distance < self.engagement_distance:
-            cattle_id, cattle_pos = nearest_cattle
+    def get_current_push_data(self):
+        """Get the current push position and direction"""
+        if not self.push_positions or not self.push_directions:
+            return None, None
             
-            # Check if cattle needs to be pushed (not already at goal)
-            cattle_to_goal = np.linalg.norm(self.goal_position[:2] - cattle_pos[:2])
+        # Ensure we're within bounds
+        if self.current_cluster_idx >= len(self.push_positions):
+            self.current_cluster_idx = 0
             
-            if cattle_to_goal > 2.0:  # Only push if cattle isn't already near goal
-                # Simplified engagement logic - if we're close to cattle, we're pushing
-                self.operation_mode = "PUSHING"
-                self.current_target_altitude = self.engagement_altitude
-                
-                # Update current push target to be this cattle
-                self.current_push_target = cattle_pos
-                
-                # Calculate push direction (toward goal)
-                cattle_to_goal_vec = self.goal_position[:2] - cattle_pos[:2]
-                if np.linalg.norm(cattle_to_goal_vec) > 0:
-                    self.current_push_direction = cattle_to_goal_vec / np.linalg.norm(cattle_to_goal_vec)
-                
-                # Log that we're pushing
-                self.get_logger().info(f'PUSHING cattle {cattle_id}, distance to goal: {cattle_to_goal:.2f}m')
-                return
+        # Get current push position and direction
+        push_position = self.push_positions[self.current_cluster_idx][1]
         
-        # If we get here, we're not pushing - stay in transit mode following waypoints
-        # This means we'll follow the path at a higher altitude
-
+        # Find matching direction
+        push_direction = None
+        for idx, direction in self.push_directions:
+            if idx == self.push_positions[self.current_cluster_idx][0]:
+                push_direction = direction
+                break
+                
+        return push_position, push_direction
     
-    def get_next_waypoint(self):
-        """
-        Get the next waypoint in the path, using lookahead for smooth following
-        """
-        if not self.path_waypoints:
+    def calculate_velocity(self, target, speed_limit=None):
+        """Calculate velocity to reach the target position"""
+        if speed_limit is None:
+            speed_limit = self.max_xy_speed
+            
+        # Get direction vector to target
+        direction = target[:2] - self.drone_position[:2]
+        distance = np.linalg.norm(direction)
+        
+        # No movement needed if very close
+        if distance < 0.1:
+            return np.zeros(2)
+            
+        # Normalize and scale by distance (slow down as we approach)
+        direction = direction / distance
+        speed = min(speed_limit, distance)
+        
+        return direction * speed
+    
+    def is_position_reached(self, target, threshold=None):
+        """Check if target position is reached"""
+        if threshold is None:
+            threshold = self.position_threshold
+            
+        distance = np.linalg.norm(self.drone_position[:2] - target[:2])
+        return distance < threshold
+    
+    def calculate_cattle_centroid(self, max_distance=5.0):
+        """Calculate centroid of nearby cattle"""
+        if not self.cattle_positions:
             return None
             
-        # Start with current waypoint
-        current_idx = self.current_waypoint_idx
-        
-        # Mark current waypoint as reached if close enough
-        if current_idx < len(self.path_waypoints):
-            current_waypoint = self.path_waypoints[current_idx]
-            distance = np.linalg.norm(self.drone_position[:2] - current_waypoint[:2])
+        # Get push position
+        push_position, _ = self.get_current_push_data()
+        if push_position is None:
+            return None
             
-            if distance < self.waypoint_reached_threshold:
-                # Advance to next waypoint
-                self.current_waypoint_idx = min(current_idx + 1, len(self.path_waypoints) - 1)
-                current_idx = self.current_waypoint_idx
+        # Find all cattle within max_distance of push position
+        nearby_cattle = []
+        for cow_id, cow_pos in self.cattle_positions.items():
+            distance = np.linalg.norm(cow_pos[:2] - push_position[:2])
+            if distance < max_distance:
+                nearby_cattle.append(cow_pos)
                 
-                # If this is a push position waypoint, update the push target
-                if self.push_positions and current_idx < len(self.push_positions):
-                    self.current_push_target = self.push_positions[current_idx]
-                    
-                    # We'll update the push direction dynamically when we're actually pushing
-                    # This is just to initialize the direction
-                    self.current_push_direction = np.array([1.0, 0.0])  # Default direction
-        
-        # Check if we need lookahead
-        
-        if current_idx < len(self.path_waypoints) - 1:
-            current_waypoint = self.path_waypoints[current_idx]
-            next_waypoint = self.path_waypoints[current_idx + 1]
+        # Calculate centroid if we have nearby cattle
+        if nearby_cattle:
+            return np.mean(nearby_cattle, axis=0)
             
-            # Calculate distance to current waypoint
-            distance_to_current = np.linalg.norm(self.drone_position[:2] + current_waypoint[:2])
-            
-            # If we're close enough to current waypoint, start moving toward next one
-            if distance_to_current < self.lookahead_distance:
-                # Blend between current and next waypoints based on distance
-                blend_factor = 1.0 - (distance_to_current / self.lookahead_distance)
-                blend_factor = max(0.0, min(1.0, blend_factor))  # Clamp between 0 and 1
-                
-                # Interpolate between current and next waypoint
-                target = current_waypoint[:2] * (1.0 - blend_factor) + next_waypoint[:2] * blend_factor
-                return target
-        
-        # Return current waypoint if we have one
-        if current_idx < len(self.path_waypoints):
-            return self.path_waypoints[current_idx][:2]
-            
-        # Fallback to goal position if we have no valid waypoints
-        return self.goal_position[:2]
-
-    def calculate_push_position(self, cattle_pos):
-        """
-        Calculate position for pushing cattle towards goal, ensuring drone approaches
-        from the correct direction (2.75m behind cattle in push direction)
-        """
-        # If we have a current_push_direction from markers, use that
-        if self.current_push_direction is not None:
-            # This is the direction we want cattle to move (toward goal)
-            push_direction = self.current_push_direction
-        else:
-            # Calculate push direction based on cattle-to-goal vector as fallback
-            cattle_to_goal = self.goal_position[:2] - cattle_pos[:2]
-            distance_to_goal = np.linalg.norm(cattle_to_goal)
-            
-            if distance_to_goal > 0.1:
-                push_direction = cattle_to_goal / distance_to_goal
-            else:
-                push_direction = np.array([1.0, 0.0])  # Default direction
-        
-        # Position behind cattle - exactly 2.75m behind in the push direction
-        # Use NEGATIVE push_direction to go in the opposite direction from the goal
-        behind_distance = 1.00  # meters, as specified
-        push_position = cattle_pos[:2] - (push_direction * behind_distance)
-        
-        # Perpendicular vector for oscillation (if needed)
-        perpendicular = np.array([-push_direction[1], push_direction[0]])
-        
-        # Apply oscillation based on time (reduced amplitude)
-        amplitude = 0.5  # meters (reduced from 1.5)
-        frequency = 0.3  # Hz
-        
-        current_time = time.time()
-        oscillation = amplitude * math.sin(2 * math.pi * frequency * (current_time - self.start_time))
-        
-        # Add small perpendicular oscillation (can be disabled by setting amplitude to 0)
-        push_position = push_position + (perpendicular * oscillation)
-        
-        return push_position
-        
-    def altitude_control(self, msg, dt):
-        """
-        Dynamic altitude control to maintain target height with smooth transitions
-        """
-        # Current altitude
-        current_z = self.drone_position[2]
-        
-        # Calculate error
-        z_error = self.current_target_altitude - current_z
-        
-        # Adjust altitude with rate limiting for smooth transitions
-        if abs(z_error) > 0.1:  # Only adjust if error is significant
-            # Apply proportional control with rate limiting
-            desired_z_velocity = np.clip(z_error, -self.altitude_transition_rate, self.altitude_transition_rate)
-            msg.linear.z = desired_z_velocity
-        else:
-            # Maintain altitude with small corrections
-            msg.linear.z = np.clip(z_error * 2.0, -0.5, 0.5)
-        
-        return msg
+        return None
     
-    
-    def timer_callback(self):
-        """
-        Simplified main control loop for path following and herding
-        """
-        # Skip if no cattle data received yet
+    def get_cluster_size(self, max_distance=5.0):
+        """Get the number of cattle in the current cluster"""
         if not self.cattle_positions:
-            self.get_logger().info('No cattle data received yet.')
-            return
-        
-        # Update time tracking
-        current_time = time.time()
-        dt = current_time - self.last_movement_time
-        self.last_movement_time = current_time
-        
-        # Set operation mode based on current state
-        self.set_operation_mode()
-        
-        # Calculate target position based on mode
-        if self.operation_mode == "PUSHING" and self.current_push_target is not None:
-            # We're in pushing mode with a valid target
-            cattle_pos = self.current_push_target
+            return 0
             
-            # Calculate ideal push position (behind cattle)
-            target_position = self.calculate_push_position(cattle_pos)
+        push_position, _ = self.get_current_push_data()
+        if push_position is None:
+            return 0
             
-            # Log pushing information
-            if int(current_time) % 3 == 0:
-                self.get_logger().info(f'Push position: {target_position}, Drone: {self.drone_position[:2]}')
-        else:
-            # We're in transit mode, follow path
-            target_position = self.get_next_waypoint()
+        # Count nearby cattle
+        count = 0
+        for cow_id, cow_pos in self.cattle_positions.items():
+            distance = np.linalg.norm(cow_pos[:2] - push_position[:2])
+            if distance < max_distance:
+                count += 1
+                
+        return count
+    
+    def calculate_dynamic_follow_distance(self):
+        """Calculate the dynamic follow distance based on cluster size"""
+        cluster_size = self.get_cluster_size()
         
-        # Create velocity message
-        msg = Twist()
+        # Base distance plus additional distance per cow
+        distance = self.min_follow_distance + (cluster_size * self.distance_per_cow)
         
-        if target_position is not None:
-            # Direction vector to target
-            direction_to_target = target_position - self.drone_position[:2]
-            distance = np.linalg.norm(direction_to_target)
+        # Clamp to maximum
+        return min(distance, self.max_follow_distance)
+    
+    def calculate_position_behind_cattle(self):
+        """Calculate position behind cattle based on push direction and cluster size"""
+        # Get cattle centroid and push direction
+        centroid = self.calculate_cattle_centroid()
+        _, push_direction = self.get_current_push_data()
+        
+        if centroid is None or push_direction is None:
+            return None
+        
+        # Calculate dynamic follow distance
+        follow_distance = self.calculate_dynamic_follow_distance()
+        
+        # Calculate position behind cattle
+        position_behind = centroid[:2] - (push_direction * follow_distance)
+        
+        # Add transit height for Z coordinate
+        return np.array([position_behind[0], position_behind[1], self.transit_height])
+    
+    def should_switch_clusters(self):
+        """Determine if we should switch to the next cluster"""
+        # Check for timeout
+        elapsed_time = time.time() - self.cluster_start_time
+        if elapsed_time > self.cluster_timeout:
+            self.publish_status(f"Pushing timeout for cluster {self.current_cluster_idx}")
+            return True
             
-            if distance > 0.1:  # Only move if we're not already at the target
-                # Normalize direction
-                direction_normalized = direction_to_target / distance
+        # Check if cattle are near goal
+        centroid = self.calculate_cattle_centroid()
+        if centroid is not None:
+            distance_to_goal = np.linalg.norm(centroid[:2] - self.goal_position[:2])
+            if distance_to_goal < 2.0:
+                self.publish_status(f"Cattle near goal ({distance_to_goal:.1f}m)")
+                return True
                 
-                # Scale velocity based on distance (smoother approach)
-                # Use higher speed when in transit mode, slower when positioning for push
-                if self.operation_mode == "PUSHING" and distance < 3.0:
-                    # Slow approach when getting into push position
-                    max_speed = self.speed * 0.7
-                else:
-                    # Normal transit speed
-                    max_speed = self.speed * 1.3
-                    
-                speed_factor = min(1.0, distance / 2.0)
-                velocity_scale = max_speed * speed_factor
-                
-                # Set velocity components
-                msg.linear.x = direction_normalized[0] * velocity_scale
-                msg.linear.y = direction_normalized[1] * velocity_scale
-                
-                # Set angular velocity to align drone with movement direction
-                target_yaw = math.atan2(direction_normalized[1], direction_normalized[0])
-                yaw_error = self.normalize_angle(target_yaw - self.drone_yaw)
-                msg.angular.z = np.clip(yaw_error * 1.0, -1.0, 1.0)  # P controller for rotation
-        
-        # Apply altitude control
-        msg = self.altitude_control(msg, dt)
-        
-        # Publish velocity command
-        self.publisher.publish(msg)
-        
-        # Log status occasionally
-        if int(current_time) % 5 == 0 and int(current_time) != int(self.start_time):
-            self.get_logger().info(
-                f'Mode: {self.operation_mode}, Altitude: {self.drone_position[2]:.1f}m (Target: {self.current_target_altitude:.1f}m)'
-            )
+        # No need to switch yet
+        return False
+    
+    def advance_to_next_cluster(self):
+        """Move to the next cluster"""
+        if not self.push_positions:
+            return False
+            
+        # Advance to next cluster
+        self.current_cluster_idx = (self.current_cluster_idx + 1) % len(self.push_positions)
+        self.cluster_start_time = time.time()
+        self.publish_status(f"Advancing to cluster {self.current_cluster_idx}")
+        return True
     
     def normalize_angle(self, angle):
         """Normalize angle to [-pi, pi]"""
@@ -487,24 +343,241 @@ class WranglerNode(Node):
         while angle < -math.pi:
             angle += 2.0 * math.pi
         return angle
+    
+    def control_loop(self):
+        """Main control loop"""
+        # Skip if no cattle data yet
+        if not self.cattle_positions:
+            return
+            
+        # Get current push position and direction
+        push_position, push_direction = self.get_current_push_data()
+        if push_position is None:
+            return  # No data available yet
+        
+        # Create velocity message
+        cmd_vel = Twist()
+        
+        # Check the drone's current height
+        is_at_transit_height = abs(self.drone_position[2] - self.transit_height) < 0.5
+        is_at_pushing_height = abs(self.drone_position[2] - self.pushing_height) < 0.5
+        
+        # Get cattle centroid and calculate position behind cattle
+        cattle_centroid = self.calculate_cattle_centroid()
+        position_behind_cattle = self.calculate_position_behind_cattle()
+        
+        # MODIFIED LOGIC TO POSITION BEHIND CATTLE
+        
+        # If no cattle are detected yet, use original push position
+        target_position = push_position.copy()
+        if position_behind_cattle is not None:
+            # Use position behind cattle instead
+            target_position = position_behind_cattle
+        
+        # Calculate distance to target position
+        distance_to_target = np.linalg.norm(self.drone_position[:2] - target_position[:2])
+        
+        # 1. If we're not at transit height and not close to target position,
+        #    adjust height while moving toward target
+        if not is_at_transit_height and distance_to_target > 2.0:
+            # Move to transit height
+            height_error = self.transit_height - self.drone_position[2]
+            cmd_vel.linear.z = np.clip(height_error, -self.max_z_speed, self.max_z_speed)
+            
+            # Always move horizontally toward target position
+            velocity = self.calculate_velocity(target_position)
+            cmd_vel.linear.x = velocity[0]
+            cmd_vel.linear.y = velocity[1]
+            
+            # Log status periodically
+            if time.time() - self.last_status_time > 5.0:
+                self.publish_status(f"Moving to position behind cattle while adjusting altitude: {self.drone_position[2]:.1f}m → {self.transit_height}m")
+                self.last_status_time = time.time()
+        
+        # 2. At transit height, move to position behind cattle
+        elif is_at_transit_height and distance_to_target > 1.0:
+            # Move horizontally to position behind cattle
+            velocity = self.calculate_velocity(target_position)
+            cmd_vel.linear.x = velocity[0]
+            cmd_vel.linear.y = velocity[1]
+            
+            # Maintain transit height
+            height_error = self.transit_height - self.drone_position[2]
+            cmd_vel.linear.z = np.clip(height_error, -self.max_z_speed, self.max_z_speed)
+            
+            # Log status periodically
+            if time.time() - self.last_status_time > 5.0:
+                follow_distance = self.calculate_dynamic_follow_distance()
+                cluster_size = self.get_cluster_size()
+                self.publish_status(
+                    f"Moving behind cluster {self.current_cluster_idx} "
+                    f"({cluster_size} cattle): {distance_to_target:.1f}m away, "
+                    f"following at {follow_distance:.1f}m"
+                )
+                self.last_status_time = time.time()
+        
+        # 3. At position behind cattle but still at transit height, descend for pushing
+        elif is_at_transit_height and distance_to_target <= 1.0:
+            # Start descending while maintaining position behind cattle
+            height_error = self.pushing_height - self.drone_position[2]
+            cmd_vel.linear.z = np.clip(height_error, -self.max_z_speed, self.max_z_speed)
+            
+            # Continue tracking position behind cattle
+            if cattle_centroid is not None and push_direction is not None:
+                # Recalculate ideal position as we descend
+                follow_distance = self.calculate_dynamic_follow_distance()
+                ideal_position = cattle_centroid[:2] - push_direction * follow_distance
+                
+                # Move toward ideal position
+                velocity = self.calculate_velocity(np.append(ideal_position, 0), speed_limit=0.8)
+                cmd_vel.linear.x = velocity[0]
+                cmd_vel.linear.y = velocity[1]
+            else:
+                # Maintain position with small adjustments if no cattle data
+                velocity = self.calculate_velocity(target_position, speed_limit=0.5)
+                cmd_vel.linear.x = velocity[0]
+                cmd_vel.linear.y = velocity[1]
+            
+            # Orient toward push direction
+            if push_direction is not None:
+                target_yaw = np.arctan2(push_direction[1], push_direction[0])
+                yaw_error = self.normalize_angle(target_yaw - self.drone_orientation)
+                cmd_vel.angular.z = np.clip(yaw_error, -self.max_angular_speed, self.max_angular_speed)
+            
+            # Log status periodically
+            if time.time() - self.last_status_time > 5.0:
+                self.publish_status(f"Descending for pushing while tracking cattle: {self.drone_position[2]:.1f}m → {self.pushing_height}m")
+                self.last_status_time = time.time()
+        
+        # 4. At pushing height, perform herding behavior
+        elif is_at_pushing_height:
+            # Check if we should switch clusters
+            if self.should_switch_clusters():
+                # Ascend before moving to next cluster
+                height_error = self.transit_height - self.drone_position[2]
+                cmd_vel.linear.z = np.clip(height_error, -self.max_z_speed, self.max_z_speed)
+                
+                # Continue moving horizontally while ascending
+                if position_behind_cattle is not None:
+                    velocity = self.calculate_velocity(position_behind_cattle, speed_limit=0.8)
+                    cmd_vel.linear.x = velocity[0]
+                    cmd_vel.linear.y = velocity[1]
+                
+                # If we're getting close to transit height, advance to next cluster
+                if height_error < 1.0:
+                    self.advance_to_next_cluster()
+            else:
+                # Normal pushing behavior
+                if cattle_centroid is not None and push_direction is not None:
+                    # Calculate dynamic follow distance
+                    follow_distance = self.calculate_dynamic_follow_distance()
+                    
+                    # Calculate ideal position behind cattle
+                    ideal_position = cattle_centroid[:2] - push_direction * follow_distance
+                    
+                    # Calculate direction to ideal position
+                    to_ideal = ideal_position - self.drone_position[:2]
+                    distance_to_ideal = np.linalg.norm(to_ideal)
+                    
+                    # If too far from ideal position, move towards it
+                    if distance_to_ideal > 1.0:
+                        velocity = self.calculate_velocity(np.append(ideal_position, 0), speed_limit=1.0)
+                        cmd_vel.linear.x = velocity[0]
+                        cmd_vel.linear.y = velocity[1]
+                    else:
+                        # Close enough, add gentle push in push direction
+                        cmd_vel.linear.x = push_direction[0] * 0.5
+                        cmd_vel.linear.y = push_direction[1] * 0.5
+                    
+                    # Orient towards cattle
+                    to_cattle = cattle_centroid[:2] - self.drone_position[:2]
+                    if np.linalg.norm(to_cattle) > 0.1:
+                        target_yaw = np.arctan2(to_cattle[1], to_cattle[0])
+                        yaw_error = self.normalize_angle(target_yaw - self.drone_orientation)
+                        cmd_vel.angular.z = np.clip(yaw_error, -self.max_angular_speed, self.max_angular_speed)
+                    
+                    # Maintain pushing height
+                    height_error = self.pushing_height - self.drone_position[2]
+                    cmd_vel.linear.z = np.clip(height_error, -self.max_z_speed, self.max_z_speed)
+                    
+                    # Log status periodically
+                    if time.time() - self.last_status_time > 5.0:
+                        elapsed = time.time() - self.cluster_start_time
+                        remaining = max(0, self.cluster_timeout - elapsed)
+                        cluster_size = self.get_cluster_size()
+                        self.publish_status(
+                            f"Pushing cluster {self.current_cluster_idx} "
+                            f"({cluster_size} cattle): "
+                            f"following at {follow_distance:.1f}m, "
+                            f"time: {elapsed:.0f}s/{remaining:.0f}s"
+                        )
+                        self.last_status_time = time.time()
+                else:
+                    # No cattle found or no push direction, ascend and move to next cluster
+                    height_error = self.transit_height - self.drone_position[2]
+                    cmd_vel.linear.z = np.clip(height_error, -self.max_z_speed, self.max_z_speed)
+                    
+                    # Move horizontally to the next push position while ascending
+                    next_idx = (self.current_cluster_idx + 1) % len(self.push_positions)
+                    if next_idx < len(self.push_positions):
+                        next_position = self.push_positions[next_idx][1]
+                        velocity = self.calculate_velocity(next_position, speed_limit=1.0)
+                        cmd_vel.linear.x = velocity[0]
+                        cmd_vel.linear.y = velocity[1]
+                    
+                    if height_error < 1.0:  # Getting close to transit height
+                        self.advance_to_next_cluster()
+        
+        # 5. In transition between heights, handle smoothly with simultaneous movement
+        else:
+            # Determine if we're ascending or descending
+            if distance_to_target <= 1.0:  # Near target position, should be descending
+                target_height = self.pushing_height
+            else:  # Far from target position, should be at transit height
+                target_height = self.transit_height
+            
+            # Move toward target height
+            height_error = target_height - self.drone_position[2]
+            cmd_vel.linear.z = np.clip(height_error, -self.max_z_speed, self.max_z_speed)
+            
+            # Always move horizontally, adjust speed based on distance
+            speed_limit = 1.0 if distance_to_target > 2.0 else 0.5
+            
+            # If we have cattle data, track position behind them
+            if cattle_centroid is not None and push_direction is not None:
+                follow_distance = self.calculate_dynamic_follow_distance()
+                ideal_position = cattle_centroid[:2] - push_direction * follow_distance
+                
+                velocity = self.calculate_velocity(np.append(ideal_position, 0), speed_limit=speed_limit)
+                cmd_vel.linear.x = velocity[0]
+                cmd_vel.linear.y = velocity[1]
+            else:
+                # Use target position if no cattle data
+                velocity = self.calculate_velocity(target_position, speed_limit=speed_limit)
+                cmd_vel.linear.x = velocity[0]
+                cmd_vel.linear.y = velocity[1]
+        
+        # Publish velocity command
+        self.velocity_pub.publish(cmd_vel)
+
 
 def main(args=None):
     rclpy.init(args=args)
-    wrangler_node = WranglerNode()
+    node = WranglerNode()
     
     try:
-        rclpy.spin(wrangler_node)
+        rclpy.spin(node)
     except KeyboardInterrupt:
-        wrangler_node.get_logger().info('Node stopped by keyboard interrupt')
+        node.get_logger().info('Node stopped by keyboard interrupt')
     finally:
-        # Stop the drone before shutting down
+        # Send stop command
         stop_msg = Twist()
-        wrangler_node.publisher.publish(stop_msg)
-        wrangler_node.get_logger().info('Stopping drone and shutting down node')
+        node.velocity_pub.publish(stop_msg)
         
-        # Clean up
-        wrangler_node.destroy_node()
+        # Cleanup
+        node.destroy_node()
         rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

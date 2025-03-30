@@ -725,7 +725,7 @@
 
     <!-- Drone (Cylinder) -->
 <model name="drone">
-  <pose>0 0 1.0 0 0 0</pose>
+  <pose>-8 -8 1.0 0 0 0</pose>
   <link name="body">
     <inertial>
       <mass>1.0</mass>

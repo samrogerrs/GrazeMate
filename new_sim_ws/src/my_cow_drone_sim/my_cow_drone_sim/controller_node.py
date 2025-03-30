@@ -24,7 +24,7 @@ class CattleBoidsNode(Node):
         self.wrangler_avoidance_weight = 3.0  # Weight for wrangler avoidance (higher = stronger fleeing)
         self.max_speed = 1.5            # Maximum cow speed
         self.min_speed = 0.1            # Minimum cow speed
-        self.perception_radius = 2.0    # How far cows can see other cows
+        self.perception_radius = 2.5    # How far cows can see other cows
         self.separation_radius = 1.0    # Distance to maintain between cows
         self.wrangler_detection_radius = 3  # How far cows can detect wrangler
         self.wrangler_panic_radius = 2.0  # Distance at which cows start to run faster
@@ -230,8 +230,11 @@ class CattleBoidsNode(Node):
         
         return steering
     
+
     def calculate_wrangler_avoidance(self, cow_id):
-        """Calculate avoidance force to flee from wrangler"""
+        """
+        Calculate avoidance force to flee directly away from wrangler
+        """
         steering = np.zeros(3)
         
         # If wrangler hasn't been detected yet, return zero force
@@ -243,24 +246,26 @@ class CattleBoidsNode(Node):
         
         # If wrangler is within detection radius, generate avoidance force
         if distance_to_wrangler < self.wrangler_detection_radius and distance_to_wrangler > 0:
-            # Vector pointing away from wrangler
+            # Vector pointing directly away from wrangler
             steering = position - self.wrangler_position
             
-            # Create a stronger inverse-square response (much stronger at close distances)
-            # This gives a more realistic "panic" response
-            avoidance_strength = ((self.wrangler_detection_radius / distance_to_wrangler) ** 2) - 1.0
-            avoidance_strength = max(0.0, min(10.0, avoidance_strength))  # Clamp between 0 and 10
-            
-            steering = steering * avoidance_strength
-            
-            # Don't normalize - allow the length to represent the urgency
+            # Normalize to get the direction vector
             if np.linalg.norm(steering) > 0:
-                # Still apply some directional guidance, but keep magnitude
-                steering_dir = steering / np.linalg.norm(steering)
-                steering = steering_dir * self.max_speed * avoidance_strength
-            
-            self.get_logger().info(f'Cow {cow_id} avoiding wrangler at distance {distance_to_wrangler:.2f}m, ' 
-                                f'force: {np.linalg.norm(steering):.2f}, avoidance: {avoidance_strength:.2f}')
+                steering = steering / np.linalg.norm(steering)
+                
+                # Scale by max speed directly - no inverse square response
+                # This makes cows always run directly away at consistent speed
+                flee_speed = self.max_speed
+                
+                # Apply panic speed multiplier if within panic radius
+                if distance_to_wrangler < self.wrangler_panic_radius:
+                    flee_speed = self.max_speed * self.panic_speed_multiplier
+                
+                # Set the magnitude to the flee speed
+                steering = steering * flee_speed
+                
+                self.get_logger().info(f'Cow {cow_id} fleeing directly from wrangler at distance {distance_to_wrangler:.2f}m, ' 
+                                    f'speed: {flee_speed:.2f}')
         
         return steering
 

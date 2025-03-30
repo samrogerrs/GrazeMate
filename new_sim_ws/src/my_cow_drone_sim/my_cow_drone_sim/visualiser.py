@@ -10,6 +10,7 @@ from scipy.spatial import ConvexHull
 import numpy as np
 import math
 from std_msgs.msg import ColorRGBA
+import time
 
 class EnhancedCattleVisualizerNode(Node):
     """
@@ -33,11 +34,20 @@ class EnhancedCattleVisualizerNode(Node):
         self.min_approach_distance = 3.0  # Minimum distance to approach a cluster
         self.approach_angle_range = math.pi/4  # Range of approach angles (45 degrees)
         
+        # Path planning update parameters
+        self.weight_change_threshold = 0.2  # Threshold for significant weight change (20%)
+        self.previous_cluster_weights = {}  # Store previous weights for comparison
+        self.path_last_updated = time.time()  # Timestamp of last update
+        self.min_update_interval = 1.0  # Minimum time between updates (seconds)
+        self.force_update_counter = 0  # Counter to force update after several cycles
+        self.force_update_threshold = 30  # Update path every N cycles regardless of weight changes
+
         # State tracking
         self.cattle_positions = {}
         self.wrangler_position = np.array([0.0, 0.0, 0.0])
         self.previous_wrangler_positions = []
         self.max_path_length = 100
+        self.data_received = False  # Flag to track if we've received any data
         
         # Mustering planning
         self.clusters = []  # Will store all cluster data
@@ -47,6 +57,10 @@ class EnhancedCattleVisualizerNode(Node):
         self.current_target_cluster = None  # Currently targeted cluster
         self.current_push_position = None  # Current push position target
         self.optimal_path = []  # Sequence of positions to follow
+        self.path_segments = {}  # Stores path segments
+        
+        # Mock data for initial visualization (will be replaced with real data)
+        self.initialize_mock_data()
         
         # Track active cluster markers for cleanup
         self.current_cluster_count = 0
@@ -95,11 +109,34 @@ class EnhancedCattleVisualizerNode(Node):
                 lambda msg, id=cow_id: self.cattle_callback(msg, id),
                 10
             )
+            
+            # Also try alternative topic format
+            self.create_subscription(
+                Odometry,
+                f'/cow{i}/odom',
+                lambda msg, id=cow_id: self.cattle_callback(msg, id),
+                10
+            )
         
-        # Subscribe to wrangler/drone odometry
+        # Subscribe to wrangler/drone odometry (try multiple potential topic names)
         self.create_subscription(
             Odometry,
             '/drone/odom',
+            self.wrangler_callback,
+            10
+        )
+        
+        # Try alternative topic names for the wrangler
+        self.create_subscription(
+            Odometry,
+            '/wrangler/odom',
+            self.wrangler_callback,
+            10
+        )
+        
+        self.create_subscription(
+            Odometry,
+            '/robot/odom',
             self.wrangler_callback,
             10
         )
@@ -116,7 +153,75 @@ class EnhancedCattleVisualizerNode(Node):
         # Store cluster data for debugging
         self.cluster_data = {}
         
-        self.get_logger().info('Enhanced Cattle Visualizer node initialized with optimal path planning')
+        # Special timer for debug info
+        self.debug_timer = self.create_timer(5.0, self.print_debug_info)
+        
+        self.get_logger().info('Enhanced Cattle Visualizer node initialized with adaptive path planning')
+        
+        # Immediately publish initial visualization
+        self.update_visualization()
+    
+    def initialize_mock_data(self):
+        """
+        Initialize some mock data for visualization until real data arrives
+        """
+        self.get_logger().info('Initializing mock cattle data for visualization')
+        
+        # Create a grid of cattle
+        grid_size = 3  # 3x3 grid
+        spacing = 2.0  # 2 meters between cattle
+        
+        for i in range(grid_size):
+            for j in range(grid_size):
+                cow_id = f'cow{i*grid_size + j + 1}'
+                # Position cattle in a grid pattern with small random offsets
+                x = -5.0 + i * spacing + np.random.uniform(-0.3, 0.3)
+                y = -5.0 + j * spacing + np.random.uniform(-0.3, 0.3)
+                z = 0.0
+                
+                self.cattle_positions[cow_id] = np.array([x, y, z])
+        
+        # Add a few more scattered cattle
+        for i in range(grid_size*grid_size + 1, self.num_cows + 1):
+            cow_id = f'cow{i}'
+            # Random positions for remaining cattle
+            x = np.random.uniform(-8.0, 0.0)
+            y = np.random.uniform(-8.0, 0.0)
+            z = 0.0
+            
+            self.cattle_positions[cow_id] = np.array([x, y, z])
+                
+        # Set wrangler initial position
+        self.wrangler_position = np.array([-10.0, -10.0, 2.0])
+        
+        # Create initial wrangler path point
+        timestamp = self.get_clock().now().to_msg()
+        pose = PoseStamped()
+        pose.header.frame_id = "map"
+        pose.header.stamp = timestamp
+        pose.pose.position.x = self.wrangler_position[0]
+        pose.pose.position.y = self.wrangler_position[1]
+        pose.pose.position.z = self.wrangler_position[2]
+        pose.pose.orientation.w = 1.0
+        
+        self.previous_wrangler_positions.append(pose)
+    
+    def print_debug_info(self):
+        """
+        Print debug information about the current state
+        """
+        self.get_logger().info(f"Debug Info - Cattle count: {len(self.cattle_positions)}, Cluster count: {len(self.clusters)}")
+        self.get_logger().info(f"Wrangler position: {self.wrangler_position}")
+        self.get_logger().info(f"Data received flag: {self.data_received}")
+        
+        # Check if we've received any cattle positions
+        if not self.cattle_positions:
+            self.get_logger().warn("No cattle positions received - check topic names and data sources")
+        
+        # Force visibility of markers
+        self.publish_goal()
+        self.publish_path()
+        self.publish_optimal_path()
     
     def cattle_callback(self, msg, cattle_id):
         """
@@ -124,6 +229,8 @@ class EnhancedCattleVisualizerNode(Node):
         """
         pos = msg.pose.pose.position
         self.cattle_positions[cattle_id] = np.array([pos.x, pos.y, pos.z])
+        self.data_received = True
+        self.get_logger().debug(f"Received data for {cattle_id}: [{pos.x}, {pos.y}, {pos.z}]")
     
     def wrangler_callback(self, msg):
         """
@@ -131,6 +238,8 @@ class EnhancedCattleVisualizerNode(Node):
         """
         pos = msg.pose.pose.position
         self.wrangler_position = np.array([pos.x, pos.y, pos.z])
+        self.data_received = True
+        self.get_logger().debug(f"Received wrangler position: [{pos.x}, {pos.y}, {pos.z}]")
         
         # Add to path history
         timestamp = self.get_clock().now().to_msg()
@@ -172,55 +281,60 @@ class EnhancedCattleVisualizerNode(Node):
         
         self.path_pub.publish(historical_path)
     
-    def publish_optimal_path(self):
+    def check_significant_weight_changes(self, new_prioritized_clusters):
         """
-        Publish the planned optimal mustering path
+        Check if there are significant changes in cluster weights that warrant path re-planning
+        
+        Returns:
+        - True if significant changes detected, False otherwise
         """
-        if not self.optimal_path:
-            return
+        # Always update if we haven't created path segments yet
+        if not hasattr(self, 'path_segments') or not self.path_segments:
+            self.get_logger().debug("Initial path planning needed")
+            return True
             
-        optimal_path = Path()
-        optimal_path.header.frame_id = "map"
-        optimal_path.header.stamp = self.get_clock().now().to_msg()
-        
-        # Start from current position
-        timestamp = self.get_clock().now().to_msg()
-        current_pose = PoseStamped()
-        current_pose.header.frame_id = "map"
-        current_pose.header.stamp = timestamp
-        current_pose.pose.position.x = self.wrangler_position[0]
-        current_pose.pose.position.y = self.wrangler_position[1]
-        current_pose.pose.position.z = self.wrangler_position[2]
-        current_pose.pose.orientation.w = 1.0
-        
-        optimal_path.poses.append(current_pose)
-        
-        # Add all planned waypoints
-        for point in self.optimal_path:
-            pose = PoseStamped()
-            pose.header.frame_id = "map"
-            pose.header.stamp = timestamp
-            pose.pose.position.x = point[0]
-            pose.pose.position.y = point[1]
-            pose.pose.position.z = 1 # Use current height
-            pose.pose.orientation.w = 1.0
+        # Check if clusters have changed (different count)
+        if len(new_prioritized_clusters) != len(self.prioritized_clusters):
+            self.get_logger().debug(f"Cluster count changed: {len(self.prioritized_clusters)} -> {len(new_prioritized_clusters)}")
+            return True
             
-            optimal_path.poses.append(pose)
+        # Force update after certain number of cycles
+        self.force_update_counter += 1
+        if self.force_update_counter >= self.force_update_threshold:
+            self.force_update_counter = 0
+            self.get_logger().debug("Forced path update due to cycle threshold")
+            return True
         
-        # Finally add the goal position
-        goal_pose = PoseStamped()
-        goal_pose.header.frame_id = "map"
-        goal_pose.header.stamp = timestamp
-        goal_pose.pose.position.x = self.goal_position[0]
-        goal_pose.pose.position.y = self.goal_position[1]
-        goal_pose.pose.position.z = self.goal_position[2]
-        goal_pose.pose.orientation.w = 1.0
+        # Check for significant weight changes
+        significant_change = False
         
-        optimal_path.poses.append(goal_pose)
+        for (new_idx, new_weight), (old_idx, old_weight) in zip(new_prioritized_clusters, self.prioritized_clusters):
+            # Compare cluster indices (if different clusters have different priority now)
+            if new_idx != old_idx:
+                self.get_logger().debug(f"Cluster priority order changed: {old_idx} -> {new_idx}")
+                significant_change = True
+                break
+                
+            # Check for significant change in weight value
+            weight_change_ratio = abs(new_weight - old_weight) / (abs(old_weight) + 1e-6)
+            if weight_change_ratio > self.weight_change_threshold:
+                self.get_logger().debug(f"Significant weight change for cluster {new_idx}: {old_weight:.2f} -> {new_weight:.2f} (change: {weight_change_ratio:.2f})")
+                significant_change = True
+                break
         
-        # Publish the optimal path
-        self.optimal_path_pub.publish(optimal_path)
-    
+        # Check minimum time interval between updates
+        current_time = time.time()
+        time_since_last_update = current_time - self.path_last_updated
+        
+        if significant_change and time_since_last_update < self.min_update_interval:
+            self.get_logger().debug(f"Delaying update: {time_since_last_update:.2f}s since last update")
+            return False
+            
+        if significant_change:
+            self.path_last_updated = current_time
+            
+        return significant_change
+
     def calculate_cluster_metrics(self, clusters):
         """
         Calculate metrics for each cluster to prioritize them for mustering
@@ -658,6 +772,34 @@ class EnhancedCattleVisualizerNode(Node):
             self.path_segments = self.generate_optimal_path()
             
         if not self.path_segments:
+            # If no path segments yet, create a simple path to goal
+            optimal_path = Path()
+            optimal_path.header.frame_id = "map"
+            optimal_path.header.stamp = self.get_clock().now().to_msg()
+            
+            # Start from current wrangler position
+            timestamp = self.get_clock().now().to_msg()
+            current_pose = PoseStamped()
+            current_pose.header.frame_id = "map"
+            current_pose.header.stamp = timestamp
+            current_pose.pose.position.x = self.wrangler_position[0]
+            current_pose.pose.position.y = self.wrangler_position[1]
+            current_pose.pose.position.z = self.wrangler_position[2]
+            current_pose.pose.orientation.w = 1.0
+            
+            # Add goal position
+            goal_pose = PoseStamped()
+            goal_pose.header.frame_id = "map"
+            goal_pose.header.stamp = timestamp
+            goal_pose.pose.position.x = self.goal_position[0]
+            goal_pose.pose.position.y = self.goal_position[1]
+            goal_pose.pose.position.z = self.goal_position[2]
+            goal_pose.pose.orientation.w = 1.0
+            
+            optimal_path.poses = [current_pose, goal_pose]
+            
+            # Publish simple path
+            self.optimal_path_pub.publish(optimal_path)
             return
             
         optimal_path = Path()
@@ -757,7 +899,6 @@ class EnhancedCattleVisualizerNode(Node):
         
         # Publish the optimal path
         self.optimal_path_pub.publish(optimal_path)
-
     
     def visualize_push_positions_and_directions(self, marker_array):
         """
@@ -897,9 +1038,7 @@ class EnhancedCattleVisualizerNode(Node):
         """
         Update visualization markers for cattle, clusters, and optimal mustering path
         """
-        # Skip if we don't have enough data yet
-        if len(self.cattle_positions) < 1:
-            return
+        # Always attempt visualization, no early return now
         
         # Create marker array message
         marker_array = MarkerArray()
@@ -1315,23 +1454,46 @@ class EnhancedCattleVisualizerNode(Node):
             
             # Prioritize clusters for mustering
             if self.clusters:
-                self.prioritized_clusters = self.calculate_cluster_metrics(self.clusters)
+                # Calculate new cluster priorities
+                new_prioritized_clusters = self.calculate_cluster_metrics(self.clusters)
                 
-                # Calculate initial push positions and directions for each cluster
-                # These will point directly to the goal
-                self.push_positions = {}
-                self.push_directions = {}
+                # Check if we need to update the path planning
+                update_path_planning = self.check_significant_weight_changes(new_prioritized_clusters)
                 
-                for cluster_idx, _ in self.prioritized_clusters:
-                    push_position, push_direction = self.calculate_push_position(self.clusters[cluster_idx])
-                    self.push_positions[cluster_idx] = push_position
-                    self.push_directions[cluster_idx] = push_direction
-                
-                # Generate optimal path through push positions with merging branches
-                self.path_segments = self.generate_optimal_path()
-                
-                # Now update push directions to point toward connecting clusters
-                self.update_push_vectors_for_path_alignment()
+                if update_path_planning:
+                    # Store the new prioritization
+                    self.prioritized_clusters = new_prioritized_clusters
+                    
+                    # Calculate initial push positions and directions for each cluster
+                    # These will point directly to the goal
+                    self.push_positions = {}
+                    self.push_directions = {}
+                    
+                    for cluster_idx, _ in self.prioritized_clusters:
+                        push_position, push_direction = self.calculate_push_position(self.clusters[cluster_idx])
+                        self.push_positions[cluster_idx] = push_position
+                        self.push_directions[cluster_idx] = push_direction
+                    
+                    # Generate optimal path through push positions with merging branches
+                    self.path_segments = self.generate_optimal_path()
+                    
+                    # Now update push directions to point toward connecting clusters
+                    self.update_push_vectors_for_path_alignment()
+                    
+                    # Log that path planning was updated
+                    self.get_logger().info("Path planning updated due to significant weight changes")
+                else:
+                    # Make sure we have push positions and directions for all clusters
+                    # even if we're not regenerating the path
+                    for cluster_idx, _ in new_prioritized_clusters:
+                        if cluster_idx not in self.push_positions or cluster_idx not in self.push_directions:
+                            push_position, push_direction = self.calculate_push_position(self.clusters[cluster_idx])
+                            self.push_positions[cluster_idx] = push_position
+                            self.push_directions[cluster_idx] = push_direction
+                    
+                    # Since we're not updating the path planning, need to refresh the push positions and directions
+                    # for the new clusters but keep the same path structure
+                    self.get_logger().debug("Skipping path planning update, only refreshing positions")
                 
                 # Visualize push positions and directions
                 self.visualize_push_positions_and_directions(marker_array)
