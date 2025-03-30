@@ -23,7 +23,7 @@ class CattleBoidsNode(Node):
         self.cohesion_weight = 0.7      # Weight for cohesion force
         self.wrangler_avoidance_weight = 3.0  # Weight for wrangler avoidance (higher = stronger fleeing)
         self.max_speed = 1.5            # Maximum cow speed
-        self.min_speed = 0.1            # Minimum cow speed
+        self.min_speed = 0.3            # Minimum cow speed
         self.perception_radius = 2.5    # How far cows can see other cows
         self.separation_radius = 1.0    # Distance to maintain between cows
         self.wrangler_detection_radius = 3  # How far cows can detect wrangler

@@ -30,17 +30,16 @@ class EnhancedCattleVisualizerNode(Node):
         self.min_samples = 2  # Minimum samples in a cluster
         
         # Herding parameters
-        self.push_distance = 2.0  # Distance behind cluster for optimal pushing
         self.min_approach_distance = 3.0  # Minimum distance to approach a cluster
         self.approach_angle_range = math.pi/4  # Range of approach angles (45 degrees)
         
         # Path planning update parameters
-        self.weight_change_threshold = 0.2  # Threshold for significant weight change (20%)
+        self.weight_change_threshold = 0.5  # Threshold for significant weight change (20%)
         self.previous_cluster_weights = {}  # Store previous weights for comparison
         self.path_last_updated = time.time()  # Timestamp of last update
         self.min_update_interval = 1.0  # Minimum time between updates (seconds)
         self.force_update_counter = 0  # Counter to force update after several cycles
-        self.force_update_threshold = 30  # Update path every N cycles regardless of weight changes
+        self.force_update_threshold = 300  # Update path every N cycles regardless of weight changes
 
         # State tracking
         self.cattle_positions = {}
@@ -52,10 +51,8 @@ class EnhancedCattleVisualizerNode(Node):
         # Mustering planning
         self.clusters = []  # Will store all cluster data
         self.prioritized_clusters = []  # Ordered clusters based on priority
-        self.push_positions = {}  # Optimal push positions for each cluster
-        self.push_directions = {}  # Direction to push each cluster
+
         self.current_target_cluster = None  # Currently targeted cluster
-        self.current_push_position = None  # Current push position target
         self.optimal_path = []  # Sequence of positions to follow
         self.path_segments = {}  # Stores path segments
         
@@ -69,10 +66,9 @@ class EnhancedCattleVisualizerNode(Node):
             "cluster_hull_fill": set(),
             "cluster_text": set(),
             "cluster_line": set(),
-            "push_arrow": set(),
             "optimal_path": set(),
-            "push_position": set(),
-            "approach_sector": set()
+            "approach_sector": set(),
+            "target_positions": set()  # New entry for target markers
         }
         
         # Create publishers for visualization
@@ -97,6 +93,19 @@ class EnhancedCattleVisualizerNode(Node):
         self.optimal_path_pub = self.create_publisher(
             Path,
             '/visualization/optimal_path',
+            10
+        )
+        
+        # New publishers for target positions
+        self.target_pub = self.create_publisher(
+            PointStamped,
+            '/visualization/current_target',
+            10
+        )
+        
+        self.next_target_pub = self.create_publisher(
+            PointStamped,
+            '/visualization/next_target',
             10
         )
         
@@ -222,6 +231,7 @@ class EnhancedCattleVisualizerNode(Node):
         self.publish_goal()
         self.publish_path()
         self.publish_optimal_path()
+        self.publish_target_positions()  # New method call
     
     def cattle_callback(self, msg, cattle_id):
         """
@@ -269,6 +279,57 @@ class EnhancedCattleVisualizerNode(Node):
         goal_msg.point.z = self.goal_position[2]
         
         self.goal_pub.publish(goal_msg)
+    
+    def publish_target_positions(self):
+        """
+        Publish the positions of the current target cluster and the next target
+        """
+        # Only proceed if we have prioritized clusters and path segments
+        if not self.prioritized_clusters or not self.path_segments:
+            return
+            
+        # The current target is the highest priority cluster
+        current_target_idx = self.prioritized_clusters[0][0]
+        current_target_cluster = self.clusters[current_target_idx]
+        current_target_position = current_target_cluster['centroid']
+        
+        # Publish current target position
+        target_msg = PointStamped()
+        target_msg.header.frame_id = "map"
+        target_msg.header.stamp = self.get_clock().now().to_msg()
+        target_msg.point.x = current_target_position[0]
+        target_msg.point.y = current_target_position[1]
+        target_msg.point.z = current_target_position[2]
+        
+        self.target_pub.publish(target_msg)
+        
+        # Find the next target (the cluster the current target is being pushed towards)
+        if current_target_idx in self.path_segments:
+            next_target_idx = self.path_segments[current_target_idx]['merge_with']
+            
+            # If there's a next target cluster, publish its position
+            if next_target_idx is not None:
+                next_target_cluster = self.clusters[next_target_idx]
+                next_target_position = next_target_cluster['centroid']
+                
+                next_target_msg = PointStamped()
+                next_target_msg.header.frame_id = "map"
+                next_target_msg.header.stamp = self.get_clock().now().to_msg()
+                next_target_msg.point.x = next_target_position[0]
+                next_target_msg.point.y = next_target_position[1]
+                next_target_msg.point.z = next_target_position[2]
+                
+                self.next_target_pub.publish(next_target_msg)
+            else:
+                # If going directly to goal, publish goal as next target
+                next_target_msg = PointStamped()
+                next_target_msg.header.frame_id = "map"
+                next_target_msg.header.stamp = self.get_clock().now().to_msg()
+                next_target_msg.point.x = self.goal_position[0]
+                next_target_msg.point.y = self.goal_position[1]
+                next_target_msg.point.z = self.goal_position[2]
+                
+                self.next_target_pub.publish(next_target_msg)
     
     def publish_path(self):
         """
@@ -422,89 +483,6 @@ class EnhancedCattleVisualizerNode(Node):
         priorities.sort(key=lambda x: -x[1])
         
         return priorities
-    
-    def calculate_push_position(self, cluster):
-        """
-        Calculate the optimal position to push a cluster towards the goal
-        
-        Returns:
-        - push_position: Where the wrangler should position itself
-        - push_direction: Unit vector indicating direction to push
-        """
-        centroid = cluster['centroid']
-        
-        # Vector from centroid to goal
-        vector_to_goal = self.goal_position[:2] - centroid[:2]
-        distance_to_goal = np.linalg.norm(vector_to_goal)
-        
-        if distance_to_goal < 1e-6:
-            # Cluster is already at goal, no need to push
-            return centroid, np.array([0, 0])
-        
-        # Normalize vector to get direction
-        direction_to_goal = vector_to_goal / distance_to_goal
-        
-        # Calculate the push position by going in the opposite direction
-        # from the centroid (away from the goal)
-        push_direction = direction_to_goal
-        opposite_direction = -direction_to_goal
-        
-        # Calculate push position (position behind the cluster relative to goal)
-        # Adjust push distance based on cluster size for better handling of single cows
-        count = cluster['count']
-        adjusted_push_distance = self.push_distance
-        if count == 1:
-            # For single cows, get a bit closer
-            adjusted_push_distance = self.push_distance * 0.7
-        
-        push_position = centroid[:2] + opposite_direction * adjusted_push_distance
-        
-        return push_position, push_direction
-    
-    def update_push_vectors_for_path_alignment(self):
-        """
-        Updates both push directions and positions to align with the optimal path.
-        Push positions will be placed behind each cluster relative to the next target,
-        and push directions will point toward the next target in the path.
-        This should be called after generate_optimal_path() has created the path_segments.
-        """
-        if not hasattr(self, 'path_segments') or not self.path_segments:
-            return
-        
-        # For each cluster, update its push direction and position based on its next connection
-        for cluster_idx, segment in self.path_segments.items():
-            cluster = self.clusters[cluster_idx]
-            cluster_centroid = cluster['centroid'][:2]
-            
-            # Get the next point in the path (could be another cluster or goal)
-            if len(segment['points']) >= 2:
-                # The second point in the segment is where we're pushing toward
-                target_point = segment['points'][1]
-                
-                # Calculate the new push direction
-                vector_to_target = target_point - cluster_centroid
-                distance_to_target = np.linalg.norm(vector_to_target)
-                
-                if distance_to_target > 1e-6:
-                    # Normalize to get direction
-                    new_push_direction = vector_to_target / distance_to_target
-                    
-                    # Update the push direction
-                    self.push_directions[cluster_idx] = new_push_direction
-                    
-                    # Calculate the opposite direction (away from target)
-                    opposite_direction = -new_push_direction
-                    
-                    # Calculate push position (position behind the cluster relative to target)
-                    # Adjust push distance based on cluster size for better handling of single cows
-                    count = cluster['count']
-                    adjusted_push_distance = self.push_distance
-                    if count == 1:
-                        # For single cows, get a bit closer
-                        adjusted_push_distance = self.push_distance * 0.7
-                    
-                    # Update the push position to be aligned behind the cluster relative to the next target
-                    self.push_positions[cluster_idx] = cluster_centroid + opposite_direction * adjusted_push_distance
 
     def generate_optimal_path(self):
         """
@@ -606,6 +584,212 @@ class EnhancedCattleVisualizerNode(Node):
         # Clear all sets for this update cycle
         for ns_name in self.previous_cluster_markers:
             self.previous_cluster_markers[ns_name] = set()
+    
+    def visualize_target_positions(self, marker_array):
+        """
+        Create markers to visualize the target positions with big circles
+        """
+        # Only proceed if we have prioritized clusters and path segments
+        if not self.prioritized_clusters or not self.path_segments:
+            return
+            
+        # The current target is the highest priority cluster
+        current_target_idx = self.prioritized_clusters[0][0]
+        current_target_cluster = self.clusters[current_target_idx]
+        current_target_position = current_target_cluster['centroid']
+        
+        # Create marker for current target
+        current_target_marker = Marker()
+        current_target_marker.header.frame_id = "map"
+        current_target_marker.header.stamp = self.get_clock().now().to_msg()
+        current_target_marker.ns = "target_positions"
+        current_target_marker.id = 0
+        current_target_marker.type = Marker.CYLINDER
+        current_target_marker.action = Marker.ADD
+        
+        # Set position
+        current_target_marker.pose.position.x = current_target_position[0]
+        current_target_marker.pose.position.y = current_target_position[1]
+        current_target_marker.pose.position.z = 0.0
+        
+        # Set orientation (no rotation)
+        current_target_marker.pose.orientation.w = 1.0
+        
+        # Set scale for a big circle
+        current_target_marker.scale.x = 3.0  # Diameter
+        current_target_marker.scale.y = 3.0  # Diameter
+        current_target_marker.scale.z = 0.1  # Height
+        
+        # Set color (bright green for current target)
+        current_target_marker.color.r = 0.0
+        current_target_marker.color.g = 1.0
+        current_target_marker.color.b = 0.0
+        current_target_marker.color.a = 0.5  # Semi-transparent
+        
+        # Add to array
+        marker_array.markers.append(current_target_marker)
+        
+        # Track the marker
+        self.previous_cluster_markers["target_positions"].add(0)
+        
+        # Add a label for the current target
+        target_label = Marker()
+        target_label.header.frame_id = "map"
+        target_label.header.stamp = self.get_clock().now().to_msg()
+        target_label.ns = "target_positions"
+        target_label.id = 3
+        target_label.type = Marker.TEXT_VIEW_FACING
+        target_label.action = Marker.ADD
+        
+        target_label.pose.position.x = current_target_position[0]
+        target_label.pose.position.y = current_target_position[1]
+        target_label.pose.position.z = 1.8  # Higher than regular labels
+        
+        target_label.text = "CURRENT TARGET"
+        
+        # Set text size
+        target_label.scale.z = 0.7
+        
+        # Set color (bright green for current target)
+        target_label.color.r = 0.0
+        target_label.color.g = 1.0
+        target_label.color.b = 0.0
+        target_label.color.a = 1.0
+        
+        marker_array.markers.append(target_label)
+        self.previous_cluster_markers["target_positions"].add(3)
+        
+        # Find the next target (the cluster the current target is being pushed towards)
+        if current_target_idx in self.path_segments:
+            next_target_idx = self.path_segments[current_target_idx]['merge_with']
+            
+            # If there's a next target cluster, create a marker for it
+            if next_target_idx is not None:
+                next_target_cluster = self.clusters[next_target_idx]
+                next_target_position = next_target_cluster['centroid']
+                
+                # Create marker for next target
+                next_target_marker = Marker()
+                next_target_marker.header.frame_id = "map"
+                next_target_marker.header.stamp = self.get_clock().now().to_msg()
+                next_target_marker.ns = "target_positions"
+                next_target_marker.id = 1
+                next_target_marker.type = Marker.CYLINDER
+                next_target_marker.action = Marker.ADD
+                
+                # Set position
+                next_target_marker.pose.position.x = next_target_position[0]
+                next_target_marker.pose.position.y = next_target_position[1]
+                next_target_marker.pose.position.z = 0.0
+                
+                # Set orientation (no rotation)
+                next_target_marker.pose.orientation.w = 1.0
+                
+                # Set scale for a big circle
+                next_target_marker.scale.x = 3.0  # Diameter (slightly larger)
+                next_target_marker.scale.y = 3.0  # Diameter
+                next_target_marker.scale.z = 0.1  # Height
+                
+                # Set color (purple for next target)
+                next_target_marker.color.r = 0.8
+                next_target_marker.color.g = 0.0
+                next_target_marker.color.b = 0.8
+                next_target_marker.color.a = 0.5  # Semi-transparent
+                
+                # Add to array
+                marker_array.markers.append(next_target_marker)
+                
+                # Track the marker
+                self.previous_cluster_markers["target_positions"].add(1)
+                
+                # Add a label for the next target
+                next_label = Marker()
+                next_label.header.frame_id = "map"
+                next_label.header.stamp = self.get_clock().now().to_msg()
+                next_label.ns = "target_positions"
+                next_label.id = 4
+                next_label.type = Marker.TEXT_VIEW_FACING
+                next_label.action = Marker.ADD
+                
+                next_label.pose.position.x = next_target_position[0]
+                next_label.pose.position.y = next_target_position[1]
+                next_label.pose.position.z = 1.8  # Higher than regular labels
+                
+                next_label.text = "NEXT TARGET"
+                
+                # Set text size
+                next_label.scale.z = 0.7
+                
+                # Set color (purple for next target)
+                next_label.color.r = 0.8
+                next_label.color.g = 0.0
+                next_label.color.b = 0.8
+                next_label.color.a = 1.0
+                
+                marker_array.markers.append(next_label)
+                self.previous_cluster_markers["target_positions"].add(4)
+            # If the target is being pushed directly to the goal, visualize that
+            else:
+                # Create a marker for the goal
+                goal_marker = Marker()
+                goal_marker.header.frame_id = "map"
+                goal_marker.header.stamp = self.get_clock().now().to_msg()
+                goal_marker.ns = "target_positions"
+                goal_marker.id = 2
+                goal_marker.type = Marker.CYLINDER
+                goal_marker.action = Marker.ADD
+                
+                # Set position
+                goal_marker.pose.position.x = self.goal_position[0]
+                goal_marker.pose.position.y = self.goal_position[1]
+                goal_marker.pose.position.z = 0.0
+                
+                # Set orientation (no rotation)
+                goal_marker.pose.orientation.w = 1.0
+                
+                # Set scale for a big circle
+                goal_marker.scale.x = 6.0  # Diameter
+                goal_marker.scale.y = 6.0  # Diameter
+                goal_marker.scale.z = 0.1  # Height
+                
+                # Set color (blue for goal)
+                goal_marker.color.r = 0.0
+                goal_marker.color.g = 0.0
+                goal_marker.color.b = 1.0
+                goal_marker.color.a = 0.5  # Semi-transparent
+                
+                # Add to array
+                marker_array.markers.append(goal_marker)
+                
+                # Track the marker
+                self.previous_cluster_markers["target_positions"].add(2)
+                
+                # Add a label for the goal
+                goal_label = Marker()
+                goal_label.header.frame_id = "map"
+                goal_label.header.stamp = self.get_clock().now().to_msg()
+                goal_label.ns = "target_positions"
+                goal_label.id = 5
+                goal_label.type = Marker.TEXT_VIEW_FACING
+                goal_label.action = Marker.ADD
+                
+                goal_label.pose.position.x = self.goal_position[0]
+                goal_label.pose.position.y = self.goal_position[1]
+                goal_label.pose.position.z = 1.8  # Higher than regular labels
+                
+                goal_label.text = "GOAL"
+                
+                # Set text size
+                goal_label.scale.z = 0.7
+                
+                # Set color (blue for goal)
+                goal_label.color.r = 0.0
+                goal_label.color.g = 0.0
+                goal_label.color.b = 1.0
+                goal_label.color.a = 1.0
+                
+                marker_array.markers.append(goal_label)
+                self.previous_cluster_markers["target_positions"].add(5)
     
     def visualize_optimal_path(self, marker_array):
         """
@@ -899,140 +1083,6 @@ class EnhancedCattleVisualizerNode(Node):
         
         # Publish the optimal path
         self.optimal_path_pub.publish(optimal_path)
-    
-    def visualize_push_positions_and_directions(self, marker_array):
-        """
-        Create markers for visualizing push positions and directions
-        """
-        for i, cluster_idx in enumerate([c[0] for c in self.prioritized_clusters]):
-            push_position = self.push_positions[cluster_idx]
-            push_direction = self.push_directions[cluster_idx]
-            cluster = self.clusters[cluster_idx]
-            
-            # Create marker for push position
-            pos_marker = Marker()
-            pos_marker.header.frame_id = "map"
-            pos_marker.header.stamp = self.get_clock().now().to_msg()
-            pos_marker.ns = "push_position"
-            pos_marker.id = i
-            pos_marker.type = Marker.SPHERE
-            pos_marker.action = Marker.ADD
-            
-            # Set position
-            pos_marker.pose.position.x = push_position[0]
-            pos_marker.pose.position.y = push_position[1]
-            pos_marker.pose.position.z = self.wrangler_position[2]  # Use current height
-            
-            # Adjust marker size based on whether it's a single cow or cluster
-            is_single_cow = cluster['count'] == 1
-            
-            # Set scale - smaller for single cows
-            scale_factor = 0.4 if is_single_cow else 0.5
-            pos_marker.scale.x = scale_factor
-            pos_marker.scale.y = scale_factor
-            pos_marker.scale.z = scale_factor
-            
-            # Set color based on priority (gradient from red to green)
-            priority_color = 1.0 - (i / max(1, len(self.prioritized_clusters) - 1))
-            pos_marker.color.r = 235/255
-            pos_marker.color.g = 75/255
-            pos_marker.color.b = 220/255
-            pos_marker.color.a = 0.8
-            
-            # Add to array and track
-            marker_array.markers.append(pos_marker)
-            self.previous_cluster_markers["push_position"].add(i)
-            
-            # Create arrow marker for push direction
-            if np.linalg.norm(push_direction) > 1e-6:
-                arrow_marker = Marker()
-                arrow_marker.header.frame_id = "map"
-                arrow_marker.header.stamp = self.get_clock().now().to_msg()
-                arrow_marker.ns = "push_arrow"
-                arrow_marker.id = i
-                arrow_marker.type = Marker.ARROW
-                arrow_marker.action = Marker.ADD
-                
-                # Set start and end points of arrow
-                start_point = Point(x=push_position[0], y=push_position[1], z=self.wrangler_position[2])
-                end_point = Point(
-                    x=push_position[0] + push_direction[0] * 2.0, 
-                    y=push_position[1] + push_direction[1] * 2.0, 
-                    z=self.wrangler_position[2]
-                )
-                
-                arrow_marker.points = [start_point, end_point]
-                
-                # Set arrow width and head size
-                arrow_marker.scale.x = 0.1  # Shaft diameter
-                arrow_marker.scale.y = 0.2  # Head diameter
-                arrow_marker.scale.z = 0.3  # Head length
-                
-                # Set color based on priority (same as position marker)
-                arrow_marker.color.r = priority_color
-                arrow_marker.color.g = 1.0 - priority_color
-                arrow_marker.color.b = 0.0
-                arrow_marker.color.a = 0.8
-                
-                # Add to array and track
-                marker_array.markers.append(arrow_marker)
-                self.previous_cluster_markers["push_arrow"].add(i)
-                
-                # Visualize approach sector
-                sector_marker = Marker()
-                sector_marker.header.frame_id = "map"
-                sector_marker.header.stamp = self.get_clock().now().to_msg()
-                sector_marker.ns = "approach_sector"
-                sector_marker.id = i
-                sector_marker.type = Marker.TRIANGLE_LIST
-                sector_marker.action = Marker.ADD
-                
-                # Calculate sector vertices
-                cluster_centroid = self.clusters[cluster_idx]['centroid'][:2]
-                main_angle = np.arctan2(push_direction[1], push_direction[0])
-                
-                # Create a fan of triangles to represent the sector
-                num_points = 12
-                angle_step = self.approach_angle_range / (num_points - 1)
-                
-                # Create sector from a series of triangles
-                for j in range(num_points - 1):
-                    angle1 = main_angle - self.approach_angle_range/2 + j * angle_step
-                    angle2 = angle1 + angle_step
-                    
-                    # Create points at the edge of the sector
-                    p1 = Point(
-                        x=cluster_centroid[0],
-                        y=cluster_centroid[1],
-                        z=0.1  # Slightly above ground
-                    )
-                    
-                    # Point at angle1
-                    p2 = Point(
-                        x=cluster_centroid[0] + np.cos(angle1) * self.min_approach_distance,
-                        y=cluster_centroid[1] + np.sin(angle1) * self.min_approach_distance,
-                        z=0.1
-                    )
-                    
-                    # Point at angle2
-                    p3 = Point(
-                        x=cluster_centroid[0] + np.cos(angle2) * self.min_approach_distance,
-                        y=cluster_centroid[1] + np.sin(angle2) * self.min_approach_distance,
-                        z=0.1
-                    )
-                    
-                    # Add the triangle
-                    sector_marker.points.extend([p1, p2, p3])
-                
-                # Set color (semi-transparent)
-                sector_marker.color.r = priority_color
-                sector_marker.color.g = 1.0 - priority_color
-                sector_marker.color.b = 0.5
-                sector_marker.color.a = 0.2
-                
-                # Add to array and track
-                marker_array.markers.append(sector_marker)
-                self.previous_cluster_markers["approach_sector"].add(i)
     
     def update_visualization(self):
         """
@@ -1463,43 +1513,19 @@ class EnhancedCattleVisualizerNode(Node):
                 if update_path_planning:
                     # Store the new prioritization
                     self.prioritized_clusters = new_prioritized_clusters
-                    
-                    # Calculate initial push positions and directions for each cluster
-                    # These will point directly to the goal
-                    self.push_positions = {}
-                    self.push_directions = {}
-                    
-                    for cluster_idx, _ in self.prioritized_clusters:
-                        push_position, push_direction = self.calculate_push_position(self.clusters[cluster_idx])
-                        self.push_positions[cluster_idx] = push_position
-                        self.push_directions[cluster_idx] = push_direction
-                    
+                
                     # Generate optimal path through push positions with merging branches
                     self.path_segments = self.generate_optimal_path()
-                    
-                    # Now update push directions to point toward connecting clusters
-                    self.update_push_vectors_for_path_alignment()
-                    
-                    # Log that path planning was updated
-                    self.get_logger().info("Path planning updated due to significant weight changes")
-                else:
-                    # Make sure we have push positions and directions for all clusters
-                    # even if we're not regenerating the path
-                    for cluster_idx, _ in new_prioritized_clusters:
-                        if cluster_idx not in self.push_positions or cluster_idx not in self.push_directions:
-                            push_position, push_direction = self.calculate_push_position(self.clusters[cluster_idx])
-                            self.push_positions[cluster_idx] = push_position
-                            self.push_directions[cluster_idx] = push_direction
                     
                     # Since we're not updating the path planning, need to refresh the push positions and directions
                     # for the new clusters but keep the same path structure
                     self.get_logger().debug("Skipping path planning update, only refreshing positions")
-                
-                # Visualize push positions and directions
-                self.visualize_push_positions_and_directions(marker_array)
-                
+
                 # Visualize optimal path
                 self.visualize_optimal_path(marker_array)
+                
+                # Visualize target positions with big circles
+                self.visualize_target_positions(marker_array)
         
         # Publish marker array
         self.marker_pub.publish(marker_array)
@@ -1512,6 +1538,9 @@ class EnhancedCattleVisualizerNode(Node):
         
         # Update optimal path visualization
         self.publish_optimal_path()
+        
+        # Publish target positions
+        self.publish_target_positions()
 
 def main(args=None):
     rclpy.init(args=args)

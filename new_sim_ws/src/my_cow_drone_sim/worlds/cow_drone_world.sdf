@@ -88,7 +88,7 @@
 
     <!-- Cow (Sphere) -->
     <model name="cow1">
-      <pose>0 2 0.5 0 0 0</pose>
+      <pose>10 12 0.5 0 0 0</pose>
       <link name="body">
         <inertial>
           <mass>10.0</mass>
@@ -194,7 +194,7 @@
 
     <!-- Cow (Sphere) -->
     <model name="cow3">
-      <pose>5 -2 0.5 0 0 0</pose>
+      <pose>15 -12 0.5 0 0 0</pose>
       <link name="body">
         <inertial>
           <mass>10.0</mass>
@@ -298,7 +298,7 @@
 
     <!-- Cow (Sphere) -->
     <model name="cow5">
-      <pose>6 -1 0.5 0 0 0</pose>
+      <pose>16 -11 0.5 0 0 0</pose>
       <link name="body">
         <inertial>
           <mass>10.0</mass>
@@ -405,7 +405,7 @@
 
     <!-- Cow (Sphere) -->
     <model name="cow7">
-      <pose>0 -2 0.5 0 0 0</pose>
+      <pose>10 -12 0.5 0 0 0</pose>
       <link name="body">
         <inertial>
           <mass>10.0</mass>
@@ -458,7 +458,7 @@
 
     <!-- Cow (Sphere) -->
     <model name="cow8">
-      <pose>-5 -2 0.5 0 0 0</pose>
+      <pose>-15 -2 0.5 0 0 0</pose>
       <link name="body">
         <inertial>
           <mass>10.0</mass>
@@ -564,7 +564,7 @@
 
     <!-- Cow (Sphere) -->
     <model name="cow10">
-      <pose>-3 -3 0.5 0 0 0</pose>
+      <pose>-3 -13 0.5 0 0 0</pose>
       <link name="body">
         <inertial>
           <mass>10.0</mass>
@@ -617,7 +617,7 @@
 
     <!-- Cow (Sphere) -->
     <model name="cow11">
-      <pose>-6 -1 0.5 0 0 0</pose>
+      <pose>-16 -1 0.5 0 0 0</pose>
       <link name="body">
         <inertial>
           <mass>10.0</mass>
