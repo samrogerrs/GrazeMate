@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['cow']
+
+roboflow:
+  workspace: sam-rogers-ijyed
+  project: cow-detection-bdvim
+  version: 3
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/sam-rogers-ijyed/cow-detection-bdvim/dataset/3
