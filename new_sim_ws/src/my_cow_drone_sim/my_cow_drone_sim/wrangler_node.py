@@ -257,7 +257,7 @@ class FixedDirectionWranglerNode(Node):
                 face_vector = face_vector / np.linalg.norm(face_vector)
                 target_yaw = np.arctan2(face_vector[1], face_vector[0])
                 yaw_error = self.normalize_angle(target_yaw - self.drone_orientation)
-                cmd_vel.angular.z = np.clip(yaw_error * 0.5, -0.5, 0.5)
+                cmd_vel.angular.z = np.clip(yaw_error * 0.5, 0, 0)
         
         # Publish the command
         self.velocity_pub.publish(cmd_vel)
