@@ -26,7 +26,7 @@ class EnhancedCattleVisualizerNode(Node):
         self.update_rate = 10  # Hz
         
         # DBSCAN parameters
-        self.eps = 2.0        # Maximum distance between two samples to be in same cluster
+        self.eps = 3.0        # Maximum distance between two samples to be in same cluster
         self.min_samples = 2  # Minimum samples in a cluster
         
         # Herding parameters
@@ -355,8 +355,8 @@ class EnhancedCattleVisualizerNode(Node):
             return True
             
         # Check if clusters have changed (different count)
-        if len(new_prioritized_clusters) != len(self.prioritized_clusters):
-            self.get_logger().debug(f"Cluster count changed: {len(self.prioritized_clusters)} -> {len(new_prioritized_clusters)}")
+        if abs(len(new_prioritized_clusters) - len(self.prioritized_clusters))> 0:
+            self.get_logger().info(f"Cluster count changed: {len(self.prioritized_clusters)} -> {len(new_prioritized_clusters)}")
             return True
             
         # Force update after certain number of cycles
@@ -364,7 +364,7 @@ class EnhancedCattleVisualizerNode(Node):
         if self.force_update_counter >= self.force_update_threshold:
             self.force_update_counter = 0
             self.get_logger().debug("Forced path update due to cycle threshold")
-            return True
+            return False
         
         # Check for significant weight changes
         significant_change = False
@@ -372,15 +372,15 @@ class EnhancedCattleVisualizerNode(Node):
         for (new_idx, new_weight), (old_idx, old_weight) in zip(new_prioritized_clusters, self.prioritized_clusters):
             # Compare cluster indices (if different clusters have different priority now)
             if new_idx != old_idx:
-                self.get_logger().debug(f"Cluster priority order changed: {old_idx} -> {new_idx}")
-                significant_change = True
+                self.get_logger().info(f"Cluster priority order changed: {old_idx} -> {new_idx}")
+                significant_change = False
                 break
                 
             # Check for significant change in weight value
             weight_change_ratio = abs(new_weight - old_weight) / (abs(old_weight) + 1e-6)
             if weight_change_ratio > self.weight_change_threshold:
                 self.get_logger().debug(f"Significant weight change for cluster {new_idx}: {old_weight:.2f} -> {new_weight:.2f} (change: {weight_change_ratio:.2f})")
-                significant_change = True
+                significant_change = False
                 break
         
         # Check minimum time interval between updates

@@ -9,7 +9,30 @@
     <plugin filename="libignition-gazebo-physics-system.so" name="ignition::gazebo::systems::Physics"></plugin>
     <plugin filename="libignition-gazebo-user-commands-system.so" name="ignition::gazebo::systems::UserCommands"></plugin>
     <plugin filename="libignition-gazebo-scene-broadcaster-system.so" name="ignition::gazebo::systems::SceneBroadcaster"></plugin>
-    
+    <gui fullscreen="0">
+      <plugin name="3D View" filename="GzScene3D">
+        <gz-gui>
+          <title>3D View</title>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="string" key="state">docked</property>
+        </gz-gui>
+        <camera name="user_camera">
+          <pose>5 -5 2 0 0.2 2.2</pose>
+          <track_visual>
+            <name>drone</name>
+            <min_dist>2</min_dist>
+            <max_dist>8</max_dist>
+          </track_visual>
+        </camera>
+        
+        <engine>ogre2</engine>
+        <scene>scene</scene>
+        <ambient_light>0.4 0.4 0.4</ambient_light>
+        <background_color>0.8 0.8 0.8</background_color>
+        <camera_pose>-6 0 6 0 0.5 0</camera_pose>
+        <scene><grid>false</grid></scene>
+      </plugin>
+    </gui>
     <light type="directional" name="sun">
       <cast_shadows>true</cast_shadows>
       <pose>0 0 10 0 0 0</pose>
@@ -56,7 +79,6 @@
       </link>
     </model>
 
-
     <!-- Goal Marker at Position 7,7 -->
     <model name="goal_marker">
       <static>true</static>
@@ -101,25 +123,68 @@
             <izz>1.0</izz>
           </inertia>
         </inertial>
-        <collision name="collision">
+        <!-- Main body (black rectangle) -->
+        <collision name="body_collision">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
         </collision>
-        <visual name="visual">
+        <visual name="body_visual">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
           <material>
-            <ambient>0.9 0.7 0.5 1</ambient>
-            <diffuse>0.9 0.7 0.5 1</diffuse>
-            <specular>0.9 0.7 0.5 1</specular>
+            <ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- White spots (attached to main body) -->
+        <visual name="spot1">
+          <pose>0.2 0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.1</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <visual name="spot2">
+          <pose>-0.2 -0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.15</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- Head (white) -->
+        <visual name="head">
+          <pose>0.45 0 0.05 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.25 0.2 0.2</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
       </link>
@@ -154,25 +219,68 @@
             <izz>1.0</izz>
           </inertia>
         </inertial>
-        <collision name="collision">
+        <!-- Main body (black rectangle) -->
+        <collision name="body_collision">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
         </collision>
-        <visual name="visual">
+        <visual name="body_visual">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
           <material>
-            <ambient>0.9 0.7 0.5 1</ambient>
-            <diffuse>0.9 0.7 0.5 1</diffuse>
-            <specular>0.9 0.7 0.5 1</specular>
+            <ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- White spots (attached to main body) -->
+        <visual name="spot1">
+          <pose>0.2 0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.1</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <visual name="spot2">
+          <pose>-0.2 -0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.15</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- Head (white) -->
+        <visual name="head">
+          <pose>0.45 0 0.05 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.25 0.2 0.2</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
       </link>
@@ -207,25 +315,68 @@
             <izz>1.0</izz>
           </inertia>
         </inertial>
-        <collision name="collision">
+        <!-- Main body (black rectangle) -->
+        <collision name="body_collision">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
         </collision>
-        <visual name="visual">
+        <visual name="body_visual">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
           <material>
-            <ambient>0.9 0.7 0.5 1</ambient>
-            <diffuse>0.9 0.7 0.5 1</diffuse>
-            <specular>0.9 0.7 0.5 1</specular>
+            <ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- White spots (attached to main body) -->
+        <visual name="spot1">
+          <pose>0.2 0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.1</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <visual name="spot2">
+          <pose>-0.2 -0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.15</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- Head (white) -->
+        <visual name="head">
+          <pose>0.45 0 0.05 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.25 0.2 0.2</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
       </link>
@@ -259,25 +410,68 @@
             <izz>1.0</izz>
           </inertia>
         </inertial>
-        <collision name="collision">
+        <!-- Main body (black rectangle) -->
+        <collision name="body_collision">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
         </collision>
-        <visual name="visual">
+        <visual name="body_visual">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
           <material>
-            <ambient>0.9 0.7 0.5 1</ambient>
-            <diffuse>0.9 0.7 0.5 1</diffuse>
-            <specular>0.9 0.7 0.5 1</specular>
+            <ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- White spots (attached to main body) -->
+        <visual name="spot1">
+          <pose>0.2 0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.1</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <visual name="spot2">
+          <pose>-0.2 -0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.15</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- Head (white) -->
+        <visual name="head">
+          <pose>0.45 0 0.05 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.25 0.2 0.2</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
       </link>
@@ -311,25 +505,68 @@
             <izz>1.0</izz>
           </inertia>
         </inertial>
-        <collision name="collision">
+        <!-- Main body (black rectangle) -->
+        <collision name="body_collision">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
         </collision>
-        <visual name="visual">
+        <visual name="body_visual">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
           <material>
-            <ambient>0.9 0.7 0.5 1</ambient>
-            <diffuse>0.9 0.7 0.5 1</diffuse>
-            <specular>0.9 0.7 0.5 1</specular>
+            <ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- White spots (attached to main body) -->
+        <visual name="spot1">
+          <pose>0.2 0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.1</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <visual name="spot2">
+          <pose>-0.2 -0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.15</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- Head (white) -->
+        <visual name="head">
+          <pose>0.45 0 0.05 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.25 0.2 0.2</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
       </link>
@@ -418,25 +655,68 @@
             <izz>1.0</izz>
           </inertia>
         </inertial>
-        <collision name="collision">
+        <!-- Main body (black rectangle) -->
+        <collision name="body_collision">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
         </collision>
-        <visual name="visual">
+        <visual name="body_visual">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
           <material>
-            <ambient>0.9 0.7 0.5 1</ambient>
-            <diffuse>0.9 0.7 0.5 1</diffuse>
-            <specular>0.9 0.7 0.5 1</specular>
+            <ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- White spots (attached to main body) -->
+        <visual name="spot1">
+          <pose>0.2 0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.1</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <visual name="spot2">
+          <pose>-0.2 -0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.15</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- Head (white) -->
+        <visual name="head">
+          <pose>0.45 0 0.05 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.25 0.2 0.2</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
       </link>
@@ -471,25 +751,68 @@
             <izz>1.0</izz>
           </inertia>
         </inertial>
-        <collision name="collision">
+        <!-- Main body (black rectangle) -->
+        <collision name="body_collision">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
         </collision>
-        <visual name="visual">
+        <visual name="body_visual">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
           <material>
-            <ambient>0.9 0.7 0.5 1</ambient>
-            <diffuse>0.9 0.7 0.5 1</diffuse>
-            <specular>0.9 0.7 0.5 1</specular>
+            <ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- White spots (attached to main body) -->
+        <visual name="spot1">
+          <pose>0.2 0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.1</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <visual name="spot2">
+          <pose>-0.2 -0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.15</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- Head (white) -->
+        <visual name="head">
+          <pose>0.45 0 0.05 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.25 0.2 0.2</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
       </link>
@@ -524,25 +847,68 @@
             <izz>1.0</izz>
           </inertia>
         </inertial>
-        <collision name="collision">
+        <!-- Main body (black rectangle) -->
+        <collision name="body_collision">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
         </collision>
-        <visual name="visual">
+        <visual name="body_visual">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
           <material>
-            <ambient>0.9 0.7 0.5 1</ambient>
-            <diffuse>0.9 0.7 0.5 1</diffuse>
-            <specular>0.9 0.7 0.5 1</specular>
+            <ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- White spots (attached to main body) -->
+        <visual name="spot1">
+          <pose>0.2 0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.1</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <visual name="spot2">
+          <pose>-0.2 -0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.15</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- Head (white) -->
+        <visual name="head">
+          <pose>0.45 0 0.05 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.25 0.2 0.2</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
       </link>
@@ -577,25 +943,68 @@
             <izz>1.0</izz>
           </inertia>
         </inertial>
-        <collision name="collision">
+        <!-- Main body (black rectangle) -->
+        <collision name="body_collision">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
         </collision>
-        <visual name="visual">
+        <visual name="body_visual">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
           <material>
-            <ambient>0.9 0.7 0.5 1</ambient>
-            <diffuse>0.9 0.7 0.5 1</diffuse>
-            <specular>0.9 0.7 0.5 1</specular>
+            <ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- White spots (attached to main body) -->
+        <visual name="spot1">
+          <pose>0.2 0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.1</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <visual name="spot2">
+          <pose>-0.2 -0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.15</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- Head (white) -->
+        <visual name="head">
+          <pose>0.45 0 0.05 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.25 0.2 0.2</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
       </link>
@@ -630,25 +1039,68 @@
             <izz>1.0</izz>
           </inertia>
         </inertial>
-        <collision name="collision">
+        <!-- Main body (black rectangle) -->
+        <collision name="body_collision">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
         </collision>
-        <visual name="visual">
+        <visual name="body_visual">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
           <material>
-            <ambient>0.9 0.7 0.5 1</ambient>
-            <diffuse>0.9 0.7 0.5 1</diffuse>
-            <specular>0.9 0.7 0.5 1</specular>
+            <ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- White spots (attached to main body) -->
+        <visual name="spot1">
+          <pose>0.2 0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.1</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <visual name="spot2">
+          <pose>-0.2 -0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.15</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- Head (white) -->
+        <visual name="head">
+          <pose>0.45 0 0.05 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.25 0.2 0.2</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
       </link>
@@ -684,25 +1136,68 @@
             <izz>1.0</izz>
           </inertia>
         </inertial>
-        <collision name="collision">
+        <!-- Main body (black rectangle) -->
+        <collision name="body_collision">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
         </collision>
-        <visual name="visual">
+        <visual name="body_visual">
           <geometry>
-            <cylinder>
-              <radius>0.25</radius>
-              <length>0.25</length>
-            </cylinder>
+            <box>
+              <size>0.8 0.4 0.4</size>
+            </box>
           </geometry>
           <material>
-            <ambient>0.9 0.7 0.5 1</ambient>
-            <diffuse>0.9 0.7 0.5 1</diffuse>
-            <specular>0.9 0.7 0.5 1</specular>
+            <ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- White spots (attached to main body) -->
+        <visual name="spot1">
+          <pose>0.2 0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.1</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <visual name="spot2">
+          <pose>-0.2 -0.15 0.1 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>0.15</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+        
+        <!-- Head (white) -->
+        <visual name="head">
+          <pose>0.45 0 0.05 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.25 0.2 0.2</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
       </link>
@@ -720,48 +1215,15 @@
         <odom_topic>/cow12/odom</odom_topic>
       </plugin>
     </model>
-    
-    
 
-    <!-- Drone (Cylinder) -->
-<model name="drone">
-  <pose>-8 -8 1.0 0 0 0</pose>
-  <link name="body">
-    <inertial>
-      <mass>1.0</mass>
-      <inertia>
-        <ixx>0.1</ixx>
-        <ixy>0</ixy>
-        <ixz>0</ixz>
-        <iyy>0.1</iyy>
-        <iyz>0</iyz>
-        <izz>0.1</izz>
-      </inertia>
-    </inertial>
-    <collision name="collision">
-      <geometry>
-        <cylinder>
-          <radius>0.5</radius>
-          <length>0.1</length>
-        </cylinder>
-      </geometry>
-    </collision>
-    <visual name="visual">
-      <geometry>
-        <cylinder>
-          <radius>0.5</radius>
-          <length>0.1</length>
-        </cylinder>
-      </geometry>
-      <material>
-        <ambient>0.2 0.2 0.2 1</ambient>
-        <diffuse>0.2 0.2 0.2 1</diffuse>
-        <specular>0.2 0.2 0.2 1</specular>
-      </material>
-    </visual>
-  </link>
-    <!-- Add a velocity controller plugin -->
-    <plugin filename="libignition-gazebo-velocity-control-system.so" 
+    <include>
+      <uri>
+      https://fuel.gazebosim.org/1.0/hexarotor/models/X4_GPS_RGBD
+      </uri>
+      <pose>-8 -8 1.0 0 0 0</pose>
+      <name>thurstmaster</name>
+
+      <plugin filename="libignition-gazebo-velocity-control-system.so" 
             name="ignition::gazebo::systems::VelocityControl">
         <topic>/drone/cmd_vel</topic>
     </plugin>
@@ -774,7 +1236,8 @@
       <odom_publish_frequency>10</odom_publish_frequency>
       <odom_topic>/drone/odom</odom_topic>
     </plugin>
+    </include>
 
-  </model>
   </world>
 </sdf>
+

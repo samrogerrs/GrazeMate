@@ -12,8 +12,8 @@ import math
 
 class FixedDirectionWranglerNode(Node):
     """
-    Cleaned ROS2 node for drone control that properly targets the far edge of clusters
-    and points in the direction of movement.
+    Corrected ROS2 node for drone control that properly targets the far edge of clusters
+    regardless of clockwise/counterclockwise movement.
     """
     
     def __init__(self):
@@ -21,10 +21,14 @@ class FixedDirectionWranglerNode(Node):
         
         # Basic configuration parameters
         self.operational_height = 0.5  # Normal operational height (m)
-        self.transit_height = 4.0      # Higher height for transit to avoid scaring cattle (m)
-        self.speed = 4.0               # Base movement speed (m/s)
+        self.transit_height = 5.5      # Higher height for transit to avoid scaring cattle (m)
+        self.speed = 6.0               # Base movement speed (m/s)
         self.min_distance = 0.5        # Minimum distance to maintain from target (m)
+        
+        # Edge targeting parameters
         self.edge_offset = 1.0         # Additional distance beyond cluster radius to target (m)
+        
+        # Position threshold - when to consider the drone "in position"
         self.position_threshold = 3.0  # Distance to target when considered "in position" (m)
         self.descent_rate = 2.0        # How fast to descend when in position (m/s)
         
@@ -35,14 +39,13 @@ class FixedDirectionWranglerNode(Node):
         # State tracking
         self.drone_position = np.array([0.0, 0.0, 0.0])
         self.drone_orientation = 0.0
-        self.is_in_position = False
-        self.last_status_time = 0.0
+        self.is_in_position = False    # Flag to track if drone is in position
         
         # Target tracking
         self.current_target_position = None
         self.next_target_position = None
         self.target_cluster_radius = 2.5  # Default radius
-        self.calculated_edge_target = None
+        self.calculated_edge_target = None # The calculated far edge target position
         
         # Setup core subscribers
         self.setup_subscribers()
@@ -101,15 +104,19 @@ class FixedDirectionWranglerNode(Node):
     def current_target_callback(self, msg):
         """Process the current target point directly from topic"""
         self.current_target_position = np.array([msg.point.x, msg.point.y, msg.point.z])
+        self.get_logger().debug(f"Received current target at {self.current_target_position}")
         self.calculate_far_edge_target()
     
     def next_target_callback(self, msg):
         """Process the next target point directly from topic"""
         self.next_target_position = np.array([msg.point.x, msg.point.y, msg.point.z])
+        self.get_logger().debug(f"Received next target at {self.next_target_position}")
         self.calculate_far_edge_target()
     
     def markers_callback(self, msg):
-        """Extract target positions from cylinder markers"""
+        """
+        Extract target positions from cylinder markers
+        """
         for marker in msg.markers:
             # Only process cylinder markers from the target_positions namespace
             if marker.ns == "target_positions" and marker.type == Marker.CYLINDER:
@@ -122,6 +129,7 @@ class FixedDirectionWranglerNode(Node):
                     ])
                     # Extract radius from marker scale
                     self.target_cluster_radius = marker.scale.x / 2.0
+                    self.get_logger().debug(f"Found target at {self.current_target_position}, radius: {self.target_cluster_radius}")
                 
                 # Next target is ID 1 or goal is ID 2
                 elif marker.id in [1, 2]:
@@ -135,16 +143,22 @@ class FixedDirectionWranglerNode(Node):
         self.calculate_far_edge_target()
     
     def calculate_far_edge_target(self):
-        """Calculate a target position on the far edge of the current cluster"""
+        """
+        Calculate a target position on the far edge of the current cluster,
+        opposite from the direction of the next target.
+        """
         if self.current_target_position is None:
             self.calculated_edge_target = None
             return
             
         # If we don't have a next target, use a default direction (positive X axis)
         if self.next_target_position is None:
+            # Just move along positive X axis by default
             herd_direction = np.array([1.0, 0.0])
+            self.get_logger().debug("No next target, using default direction for edge targeting")
         else:
             # Calculate the vector FROM current target TO next target
+            # This is the direction we want to herd the cattle
             herd_direction = self.next_target_position[:2] - self.current_target_position[:2]
             norm = np.linalg.norm(herd_direction)
             
@@ -152,11 +166,14 @@ class FixedDirectionWranglerNode(Node):
                 herd_direction = herd_direction / norm
             else:
                 herd_direction = np.array([1.0, 0.0])  # Default if targets are too close
+                
+            self.get_logger().debug(f"Herd direction: {herd_direction}")
         
         # The approach direction is OPPOSITE to the herd direction
+        # We want to be on the far side of the cluster from the next target
         approach_direction = -herd_direction
         
-        # Calculate point on far edge of cluster
+        # Calculate point on far edge of cluster (center + approach_direction * (radius + offset))
         edge_target = self.current_target_position[:2] + approach_direction * (self.target_cluster_radius + self.edge_offset)
         
         # Create complete target position with original Z coordinate
@@ -165,6 +182,8 @@ class FixedDirectionWranglerNode(Node):
             edge_target[1],
             self.current_target_position[2]
         ])
+        
+        self.get_logger().debug(f"Calculated far edge target at {self.calculated_edge_target}")
     
     def publish_status(self, message):
         """Publish status message"""
@@ -174,7 +193,9 @@ class FixedDirectionWranglerNode(Node):
         self.get_logger().info(message)
     
     def control_loop(self):
-        """Control loop: target the far edge of the cluster"""
+        """
+        Control loop: target the far edge of the cluster
+        """
         # Create velocity message
         cmd_vel = Twist()
         
@@ -198,20 +219,24 @@ class FixedDirectionWranglerNode(Node):
         # Calculate desired height based on position
         desired_height = self.operational_height if self.is_in_position else self.transit_height
         
-        # Set movement vector
-        movement_direction = np.array([0.0, 0.0])
-        
         # If we're already at the minimum distance or closer, don't move horizontally
-        if distance_to_target > self.min_distance:
+        if distance_to_target <= self.min_distance:
+            # Just hold position
+            cmd_vel.linear.x = 0.0
+            cmd_vel.linear.y = 0.0
+            self.get_logger().debug(f"At minimum safe distance from edge target: {distance_to_target:.2f}m")
+        else:
             # Normalize the vector and set velocity
             if distance_to_target > 0.001:  # Avoid division by zero
-                movement_direction = target_vector / distance_to_target
+                target_vector = target_vector / distance_to_target
                 
                 # Scale speed based on distance (slower when closer)
                 move_speed = min(self.speed, distance_to_target * 0.5)
                 
-                cmd_vel.linear.x = movement_direction[0] * move_speed
-                cmd_vel.linear.y = movement_direction[1] * move_speed
+                cmd_vel.linear.x = target_vector[0] * move_speed
+                cmd_vel.linear.y = target_vector[1] * move_speed
+                
+                self.get_logger().debug(f"Moving toward edge target. Distance: {distance_to_target:.2f}m")
         
         # Set vertical movement - handle different behaviors for transit vs. in position
         height_error = desired_height - self.drone_position[2]
@@ -224,27 +249,23 @@ class FixedDirectionWranglerNode(Node):
             # When ascending or maintaining height, use proportional control
             cmd_vel.linear.z = np.clip(height_error * 0.5, -0.5, 0.8)
         
-        # Set direction to face - point in the direction of movement when moving
-        if np.linalg.norm(movement_direction) > 0.001:
-            # Face the direction we're moving
-            target_yaw = np.arctan2(movement_direction[1], movement_direction[0])
-            yaw_error = self.normalize_angle(target_yaw - self.drone_orientation)
-            cmd_vel.angular.z = np.clip(yaw_error * 1.0, -1.0, 1.0)  # Faster rotation
-        elif self.current_target_position is not None:
-            # If not moving, face the target center
+        # Calculate direction to face - should face toward the current target center
+        if self.current_target_position is not None:
+            # Vector from drone to current target center (not edge)
             face_vector = self.current_target_position[:2] - self.drone_position[:2]
             if np.linalg.norm(face_vector) > 0.001:
                 face_vector = face_vector / np.linalg.norm(face_vector)
                 target_yaw = np.arctan2(face_vector[1], face_vector[0])
                 yaw_error = self.normalize_angle(target_yaw - self.drone_orientation)
-                cmd_vel.angular.z = np.clip(yaw_error * 0.5, -0.5, 0.5)
+                cmd_vel.angular.z = np.clip(yaw_error * 0.5, 0, 0)
         
         # Publish the command
         self.velocity_pub.publish(cmd_vel)
         
         # Periodically log status (every 5 seconds)
-        current_time = self.get_clock().now().nanoseconds / 1e9
-        if not hasattr(self, 'last_status_time') or current_time - self.last_status_time >= 5.0:
+        if hasattr(self, 'last_status_time') and self.get_clock().now().nanoseconds / 1e9 - self.last_status_time < 5.0:
+            pass
+        else:
             position_status = "in position" if self.is_in_position else "in transit"
             height_status = f"height: {self.drone_position[2]:.1f}m → {desired_height:.1f}m"
             
@@ -260,7 +281,7 @@ class FixedDirectionWranglerNode(Node):
                 status = f"At far edge position ({position_status}). {dist_info}, {height_status}"
             
             self.publish_status(status)
-            self.last_status_time = current_time
+            self.last_status_time = self.get_clock().now().nanoseconds / 1e9
     
     def normalize_angle(self, angle):
         """Normalize angle to [-pi, pi]"""
@@ -272,7 +293,9 @@ class FixedDirectionWranglerNode(Node):
 
 
 def main(args=None):
-    """Main function for the ROS2 node."""
+    """
+    Main function for the ROS2 node.
+    """
     # Initialize the ROS2 Python client library
     rclpy.init(args=args)
     
@@ -281,11 +304,14 @@ def main(args=None):
     
     try:
         # This will block until the node is interrupted (Ctrl-C)
+        # During this time, callbacks will be called as data comes in
         rclpy.spin(node)
     except KeyboardInterrupt:
         # Handle Ctrl-C gracefully
         node.get_logger().info('Node stopped by keyboard interrupt')
     finally:
+        # Always execute this cleanup code when the node stops
+        
         # Send stop command before shutting down to ensure drone stops moving
         stop_msg = Twist()
         node.velocity_pub.publish(stop_msg)

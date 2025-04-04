@@ -21,8 +21,8 @@ class FixedDirectionWranglerNode(Node):
         
         # Basic configuration parameters
         self.operational_height = 0.5  # Normal operational height (m)
-        self.transit_height = 4.0      # Higher height for transit to avoid scaring cattle (m)
-        self.speed = 4.0               # Base movement speed (m/s)
+        self.transit_height = 5.5      # Higher height for transit to avoid scaring cattle (m)
+        self.speed = 6.0               # Base movement speed (m/s)
         self.min_distance = 0.5        # Minimum distance to maintain from target (m)
         
         # Edge targeting parameters
